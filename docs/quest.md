@@ -29,10 +29,9 @@ First download all the apks by going to this link on your quest:
  9. Open **MBF Launcher** then put in the code on the settings window.  
  
  10. Select downgrade to 1.37 and wait once its done, click mod my game and wait (it can take 1-15 mins). Once done you can select mods and install. 
+ 
 *** 
-  
-
-
+ 
 ## Using QuestPatcher (OLD METHOD FOR 1.27)
  ### Start by downloading QuestPatcher and a older version of Beat Saber on your computer:  
 **[QuestPatcher](https://github.com/Lauriethefish/QuestPatcher/releases/latest)**  

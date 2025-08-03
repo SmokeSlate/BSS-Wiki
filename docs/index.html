@@ -4,21 +4,26 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta charset="UTF-8" />
-
+    <title>Beat Saber Modding Wiki</title>
+    <script src="//cdn.tailwindcss.com"></script>
     <link
       rel="stylesheet"
       href="//cdn.jsdelivr.net/npm/docsify@4/themes/vue.css"
     />
   </head>
   <body>
+    <script src="//unpkg.com/docsify-edit-on-github/index.js"></script>
     <div id="app"></div>
     <script>
       window.$docsify = {
         loadSidebar: true,
-        plugins: [EditOnGithubPlugin.create("https://github.com/SmokeSlate/BSS-Wiki/blob/main/docs/", "https://github.com/SmokeSlate/BSS-Wiki/edit/main/docs/", "Edit on GitHub")],
+        plugins: [
+          EditOnGithubPlugin.create(
+            "https://github.com/SmokeSlate/BSS-Wiki/blob/main/docs/"
+          ),
+        ],
       };
     </script>
     <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
-    <script src="//cdn.jsdelivr.net/npm/docsify-edit-on-github"></script>
   </body>
 </html>
