@@ -8,27 +8,27 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
  ### First download all the apks by going to this link on your quest:
  **https://bsmdl.sm0ke.org**  
    
- 1. Once there click **"Download All"** and wait  
+ 1. Once there click **"Download All"** and click allow then wait until it all downloads properly.  
  
- 2. While waiting, go to the Store and download "VR Android File Manager" and install it  
+ 2. Once done, go to the Store search for and download **"VR Android File Manager"** and install it.  
  
- 3. **Open the app** and double click on each apk to install it, click **Done** after each apk installs  
+ 3. **Open the app** and double click on each apk to install it, click **Done** after each apk installs.  
  
-     * If it asks for permissions click the **toggle** then click the **back** button  
+    * If it asks for permissions click the **toggle** then click the **back** button.  
  
- 4. Open **“Go to Settings”** from *unknown sources *  
+ 4. Open **“Go to Settings”** from `unknown sources`.  
  
- 5. Scroll to **”About this headset”**  
+ 5. Scroll to **”About this headset”**.  
  
- 6. Scroll down to **build #** and click **until** it says you are a dev   
+ 6. Scroll down to **build #** and click **until** it says you are a developer.   
  
- 7. Go to General → Developer settings → `Wireless debugging` then **enable** it then click on it  
+ 7. Go to General → Developer settings → `Wireless debugging` then **enable** it then click on it. 
  
- 8. Select `pair with code` and move the window to the side  
+ 8. Select `pair with code` and move the window to the side.  
  
- 9. Open **MBF Launcher** then put in the *pairing code*  
+ 9. Open **MBF Launcher** then put in the code on the settings window.  
  
- ### Now mod the app like normal MBF and install mods!  
+ 10. Select downgrade to 1.37 and wait once its done, click mod my game and wait (it can take 1-15 mins). Once done you can select mods and install.
 
 *** 
   
