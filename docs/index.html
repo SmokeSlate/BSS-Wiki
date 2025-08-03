@@ -23,14 +23,36 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="language" content="English" />
     <meta name="revisit-after" content="1 days" />
-    <meta name="author" content="SmokeSlate" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://wiki.sm0ke.org/" />
+    <meta property="og:title" content="Beat Saber Modding Wiki" />
+    <meta
+      property="og:description"
+      content="A simple wiki for learning how to mod Beat Saber."
+    />
+    <meta property="og:image" content="/assets/logo.png" />
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://wiki.sm0ke.org/" />
+    <meta property="twitter:title" content="Beat Saber Modding Wiki" />
+    <meta
+      property="twitter:description"
+      content="A simple wiki for learning how to mod Beat Saber."
+    />
+    <meta property="twitter:image" content="/assets/logo.png" />
+    <link rel="icon" href="/assets/logo.png" />
   </head>
   <body>
     <script src="//unpkg.com/docsify-edit-on-github/index.js"></script>
     <div id="app"></div>
     <script>
       window.$docsify = {
-        loadSidebar: true,
+        loadSidebar: function (file) {
+          if (file) {
+            return false;
+          } else {
+            return true;
+          }
+        },
         plugins: [
           EditOnGithubPlugin.create(
             "https://github.com/SmokeSlate/BSS-Wiki/blob/main/docs/"
