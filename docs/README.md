@@ -1,5 +1,5 @@
-<h1 class="text-8xl">Welcome to the Beat Saber Modding Wiki!</h1>
-# This wiki is designed to help you learn how to mod Beat Saber, whether you're a beginner or an experienced modder. 
+<h1 class="text-8xl">Welcome to the Beat Saber Modding Wiki!</h1> 
+<h1>This wiki is designed to help you learn how to mod Beat Saber, whether you're a beginner or an experienced modder.</h1><br>
 
 
 <a href="/preQuest.md">
