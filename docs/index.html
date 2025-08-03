@@ -40,19 +40,23 @@
     />
     <meta property="twitter:image" content="/assets/logo.png" />
     <link rel="icon" href="/assets/logo.png" />
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        if (location.pathname === "/") {
+          var buttons = document.querySelectorAll(".sidebar-toggle")[0];
+          buttons.click();
+        }
+      });
+    </script>
   </head>
   <body>
     <script src="//unpkg.com/docsify-edit-on-github/index.js"></script>
     <div id="app"></div>
     <script>
       window.$docsify = {
-        loadSidebar: function (file) {
-          if (file) {
-            return false;
-          } else {
-            return true;
-          }
-        },
+        loadSidebar: true,
+        name: "Beat Saber Modding Wiki",
+
         plugins: [
           EditOnGithubPlugin.create(
             "https://github.com/SmokeSlate/BSS-Wiki/blob/main/docs/"
