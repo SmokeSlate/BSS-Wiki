@@ -5,7 +5,7 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
 *** 
 
 ## MBF Launcher
- ### First download all the apks by going to this link on your quest:
+First download all the apks by going to this link on your quest:
  **https://bsmdl.sm0ke.org**  
    
  1. Once there click **"Download All"** and click allow then wait until it all downloads properly.  
@@ -28,8 +28,7 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
  
  9. Open **MBF Launcher** then put in the code on the settings window.  
  
- 10. Select downgrade to 1.37 and wait once its done, click mod my game and wait (it can take 1-15 mins). Once done you can select mods and install.
-
+ 10. Select downgrade to 1.37 and wait once its done, click mod my game and wait (it can take 1-15 mins). Once done you can select mods and install. 
 *** 
   
 
