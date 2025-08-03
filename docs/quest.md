@@ -1,23 +1,23 @@
 # Quest Modding  
 ## Mods Before Friday
- ### **Use this link on your computer:**  
- ### **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)**  
+> **Use this link on your computer:**  
+> **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)**  
 
 *** 
 
 ## MBF Launcher
- ### First download all the apks by going to this link on your quest: 
+ ### First download all the apks by going to this link on your quest:
  **https://bsmdl.sm0ke.org**  
    
  1. Once there click **"Download All"** and wait  
  
- 2. While waiting, go to the Store and download ***"VR Android File Manager"*** and install it  
+ 2. While waiting, go to the Store and download "VR Android File Manager" and install it  
  
  3. **Open the app** and double click on each apk to install it, click **Done** after each apk installs  
  
      * If it asks for permissions click the **toggle** then click the **back** button  
  
- 4. Open *“Go to Settings”* from *unknown sources *  
+ 4. Open **“Go to Settings”** from *unknown sources *  
  
  5. Scroll to **”About this headset”**  
  
