@@ -1,7 +1,6 @@
 # Quest Modding  
 ## Mods Before Friday
-> **Use this link on your computer:**  
-> **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)**  
+Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** and downgrade to 1.37. Once its done, click mod my game and wait (it can take 1-15 mins). Once done you can select mods and install.
 
 *** 
 
@@ -21,11 +20,11 @@
  
  5. Scroll to **”About this headset”**  
  
- 6. Scroll down to *build #* and click **until** it says you are a dev   
+ 6. Scroll down to **build #** and click **until** it says you are a dev   
  
- 7. Go to General → Developer settings → **Wireless debugging** then **enable** it then click on it  
+ 7. Go to General → Developer settings → `Wireless debugging` then **enable** it then click on it  
  
- 8. Select *pair with code* and move the window to the side  
+ 8. Select `pair with code` and move the window to the side  
  
  9. Open **MBF Launcher** then put in the *pairing code*  
  
