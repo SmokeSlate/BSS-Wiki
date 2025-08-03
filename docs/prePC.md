@@ -4,7 +4,8 @@
  - **A VR headset (Oculus or PCVR)** this can be a rift or Quest 2,3, or 3s
  - **Beat saber on Steam or Oculus**  
  
-**If you’re using a oculus headset, download Meta PC Link app**  [ from here](https://www.meta.com/en-gb/help/quest/1517439565442928/)
+**If you’re using a oculus headset, download Meta PC Link app**  [ from here](https://www.meta.com/en-gb/help/quest/1517439565442928/)  
+ 
 -----------------------------------
 ### PC Recommended Specs: 
 
@@ -17,3 +18,8 @@
 |USB ports | 1x USB-C port| 
 -------------------------
 <small>[Source](https://www.meta.com/en-gb/help/quest/140991407990979/)</small>
+ 
+ 
+Once you have all of these, you can start modding your game! Continue to the [PC Modding Guide](/pc.md) to learn how to mod your game.  
+ 
+-----------------------------------
