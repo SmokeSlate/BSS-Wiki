@@ -1,4 +1,4 @@
-<img src="/assets/logo.png" style="width:auto;height:100px;margin-left:calc(50% - 45px);margin-right:calc(50% - 45px);"></img>
+<img src="/assets/logo.png" style="width:150px;height:auto;margin-left:calc(50% - 65px);margin-right:calc(50% - 65px);"></img>
 * [Preparations](/pre.md)
   * [Quest](/preQuest.md)
   * [PC](prePC.md)
