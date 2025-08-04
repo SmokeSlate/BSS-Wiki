@@ -6,10 +6,6 @@
     <meta charset="UTF-8" />
     <title>Beat Saber Modding Wiki</title>
     <script src="//cdn.tailwindcss.com"></script>
-    <link
-      rel="stylesheet"
-      href="//cdn.jsdelivr.net/npm/docsify@4/themes/vue.css"
-    />
     <meta name="title" content="Beat Saber Modding Wiki" />
     <meta
       name="description"
@@ -48,6 +44,11 @@
         }
       });
     </script>
+    <!-- Theme: Simple Dark -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple-dark.css"
+    />
   </head>
   <body>
     <script src="//unpkg.com/docsify-edit-on-github/index.js"></script>
@@ -55,11 +56,16 @@
     <script>
       window.$docsify = {
         loadSidebar: true,
-        name: "Beat Saber Modding Wiki",
-
+        nativeEmoji: true,
         plugins: [
           EditOnGithubPlugin.create(
-            "https://github.com/SmokeSlate/BSS-Wiki/blob/main/docs/"
+            "https://github.com/SmokeSlate/BSS-Wiki/blob/main/docs/", "", function (file) {
+              if (file === "README.md") {
+                return "";
+              } else {
+                return "<small style='font-size:10px;'>📝 Edit Document</small>";
+              }
+            }
           ),
         ],
       };
