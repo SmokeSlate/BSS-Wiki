@@ -1,7 +1,7 @@
 <h1 style="font-size:4rem;">Welcome to the Beat Saber Modding Wiki!</h1> 
 <h1 style="font-size:1.5rem;">This wiki is designed to help you learn how to mod Beat Saber, whether you're a beginner or an experienced modder.</h1><br>
 
-<a href="/preQuest.md"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">Quest Guide</button></a>       <a href="/prePC.md"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full">PC Guide</button></a>
+<a href="/#/preQuest"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">Quest Guide</button></a>       <a href="/#/prePC"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full">PC Guide</button></a>
 <br><br><br><br><br> 
 
 ## Extra Resources
