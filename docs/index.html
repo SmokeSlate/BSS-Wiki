@@ -59,7 +59,9 @@
         nativeEmoji: true,
         plugins: [
           EditOnGithubPlugin.create(
-            "https://github.com/SmokeSlate/BSS-Wiki/blob/main/docs/", "", function (file) {
+            "https://github.com/SmokeSlate/BSS-Wiki/blob/main/docs/",
+            "",
+            function (file) {
               if (file === "README.md") {
                 return "";
               } else {
@@ -71,5 +73,43 @@
       };
     </script>
     <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
+    <style>
+      /* Extra large screens: ≥1024px */
+      @media (min-width: 1024px) {
+        .hero-title {
+          font-size: 4rem !important;
+        }
+        .hero-subtitle {
+          font-size: 1.5rem !important;
+        }
+      }
+      /* Large screens: 768px–1023px */
+      @media (min-width: 768px) and (max-width: 1023px) {
+        .hero-title {
+          font-size: 3.5rem !important;
+        }
+        .hero-subtitle {
+          font-size: 1.2rem !important;
+        }
+      }
+      /* Medium screens: 480px–767px */
+      @media (min-width: 420px) and (max-width: 767px) {
+        .hero-title {
+          font-size: 3rem !important;
+        }
+        .hero-subtitle {
+          font-size: 1.3rem !important;
+        }
+      }
+      /* Small screens: <480px */
+      @media (max-width: 419px) {
+        .hero-title {
+          font-size: 2.4rem !important;
+        }
+        .hero-subtitle {
+          font-size: 0.8rem !important;
+        }
+      }
+    </style>
   </body>
 </html>
