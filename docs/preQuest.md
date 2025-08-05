@@ -1,5 +1,11 @@
 ## Quest Preparations (With PC) 
-To mod your game, you'll need to activate Developer Mode on your Quest.
+To mod your game, you'll need to activate Developer Mode on your Quest.  
+
+?> **Multiple Accounts**  
+Beat Saber cannot be modded if you have multiple accounts on your device! You will need to temporarily remove any secondary accounts before modding.  
+  
+!> **Note:** If you have already activated Developer Mode on your Quest, you can skip this section and continue to the next one.  
+
 If you haven't done this already, follow the steps below: 
 1. Go to the [Meta's Developer Website](https://developer.oculus.com/manage/organizations/create/) and log in with the
    Meta account that your Quest is bound to.
@@ -12,8 +18,6 @@ If you haven't done this already, follow the steps below:
    Developer Mode. Refer to the illustrated guide below:
    ![iOSHowTo](/assets/preQ/EnableDevModeIOS.png)
 <small>From [BSMG Wiki](https://bsmg.wiki/quest-modding.html#preparations)</small>
- 
-Download SideQuest onto your quest using: [This Link](https://sidequestvr.com/setup-howto).
 
 Continue at [the quest docs](/quest.md#MBF-Browser).
 
