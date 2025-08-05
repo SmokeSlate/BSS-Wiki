@@ -1,10 +1,10 @@
 ## Quest Preparations (With PC) 
 To mod your game, you'll need to activate Developer Mode on your Quest.  
 
-?> **Multiple Accounts**  
+!> **Multiple Accounts**  
 Beat Saber cannot be modded if you have multiple accounts on your device! You will need to temporarily remove any secondary accounts before modding.  
   
-!> **Note:** If you have already activated Developer Mode on your Quest, you can skip this section and continue to the next one.  
+?> **Note:** If you have already activated Developer Mode on your Quest, you can skip this section and continue to the next one.  
 
 If you haven't done this already, follow the steps below: 
 1. Go to the [Meta's Developer Website](https://developer.oculus.com/manage/organizations/create/) and log in with the
