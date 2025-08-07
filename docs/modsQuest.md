@@ -10,4 +10,4 @@
 **Qosmetics Pack** is for players who want to use custom sabers, notes and walls: [Download Qosmetics Pack](/modPacks/qosmeticsModBundle.qmod':ignore')
 * * * 
 ## 1.40.8
-**Main Pack** is recommended for most players: [Download Main Pack](/modPacks/1.40.8/mainModBundle.qmod ':ignore')   
+**Main Pack** is recommended for most players: [Download Main Pack](/modPacks/1.40.8/mods.qmod ':ignore')   
