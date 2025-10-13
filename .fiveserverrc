@@ -1,3 +1,5 @@
 {
-    "root": "docs/"
+    "root": "docs/",
+    "port": 1240,
+    "host": "localhost"
 }
