@@ -164,7 +164,7 @@
         let useruid =
           localStorage.getItem("chatUser") || generateRandomText(6);
         let usernew = localStorage.getItem("chatUser") === null;
-        let userdisplay = "Guest";
+        let userdisplay = "Guest (" + useruid + ")";
         let useravatar = "https://wiki.sm0ke.org/assets/logo.png";
 
         CometChatApp.init(COMETCHAT_CREDENTIALS)
