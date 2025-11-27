@@ -62,7 +62,7 @@
             "https://github.com/SmokeSlate/BSS-Wiki/blob/main/docs/",
             "",
             function (file) {
-              if (file === "README.md") {
+              if (file == "README.md" || location.hash == "#/") {
                 return "";
               } else {
                 return "<small style='font-size:10px;'>📝 Edit Document</small>";
@@ -109,6 +109,25 @@
         .hero-subtitle {
           font-size: 0.8rem !important;
         }
+      }
+      /* Ensure markdown lists display bullets/numbers */
+      .markdown-section ul,
+      .markdown-section ol {
+        list-style-position: outside;
+        margin-left: 1.25rem;
+        padding-left: 1.25rem;
+      }
+      .markdown-section ul {
+        list-style-type: disc;
+      }
+      .markdown-section ol {
+        list-style-type: decimal;
+      }
+      .markdown-section ul ul,
+      .markdown-section ul ol,
+      .markdown-section ol ul,
+      .markdown-section ol ol {
+        margin-left: 1rem;
       }
     </style>
   </body>
