@@ -222,6 +222,7 @@ async function handleGetMessages(request, env) {
 }
 
 async function handlePostMessage(request, env, ctx) {
+  ensureChatKv(env);
   const payload = await readJson(request);
   const conversationId = (payload.conversationId || "").trim();
   const senderId = (payload.senderId || "").trim();
@@ -295,8 +296,6 @@ async function handlePostMessage(request, env, ctx) {
     createdAt: now,
   };
 
-  notifyWebhook(message, payload, env, ctx);
-
   const messages = await readMessages(env, conversationId);
   messages.push(message);
   const trimmed = messages.length > MAX_MESSAGES ? messages.slice(-MAX_MESSAGES) : messages;
@@ -305,6 +304,8 @@ async function handlePostMessage(request, env, ctx) {
     env.CHAT_KV.put(MESSAGE_PREFIX + conversationId, JSON.stringify(trimmed)),
     env.CHAT_KV.put(CONVERSATIONS_KEY, JSON.stringify(index)),
   ]);
+
+  notifyWebhook(message, payload, env, ctx);
 
   return jsonResponse(
     { ok: true, message, clientToken: index[conversationId].token },
@@ -316,10 +317,14 @@ async function handlePostMessage(request, env, ctx) {
 
 async function handlePatchMessage(request, env) {
   const payload = await readJson(request);
-  const conversationId = (payload.conversationId || "").trim();
-  const messageId = (payload.messageId || payload.id || "").trim();
-  const text = typeof payload.text === "string" ? payload.text.trim() : "";
-  const senderId = (payload.senderId || "").trim();
+  const url = new URL(request.url);
+  const conversationId = (payload.conversationId || url.searchParams.get("conversationId") || "").trim();
+  const messageId = (payload.messageId || payload.id || url.searchParams.get("messageId") || url.searchParams.get("id") || "").trim();
+  const text =
+    typeof payload.text === "string"
+      ? payload.text.trim()
+      : (url.searchParams.get("text") || "").trim();
+  const senderId = (payload.senderId || url.searchParams.get("senderId") || "").trim();
 
   if (!conversationId || !messageId || !text) {
     throw new HttpError(400, "Missing fields");
@@ -394,9 +399,10 @@ async function handlePatchMessage(request, env) {
 
 async function handleDeleteMessage(request, env) {
   const payload = await readJson(request);
-  const conversationId = (payload.conversationId || "").trim();
-  const messageId = (payload.messageId || payload.id || "").trim();
-  const senderId = (payload.senderId || "").trim();
+  const url = new URL(request.url);
+  const conversationId = (payload.conversationId || url.searchParams.get("conversationId") || "").trim();
+  const messageId = (payload.messageId || payload.id || url.searchParams.get("messageId") || url.searchParams.get("id") || "").trim();
+  const senderId = (payload.senderId || url.searchParams.get("senderId") || "").trim();
 
   if (!conversationId || !messageId) {
     throw new HttpError(400, "Missing fields");
@@ -480,6 +486,24 @@ async function handleDeleteMessage(request, env) {
 }
 
 async function readJson(request) {
+  const contentType = (request.headers.get("Content-Type") || "").toLowerCase();
+  if (
+    contentType.includes("multipart/form-data") ||
+    contentType.includes("application/x-www-form-urlencoded")
+  ) {
+    let formData;
+    try {
+      formData = await request.formData();
+    } catch (error) {
+      throw new HttpError(400, "Invalid form data");
+    }
+    const payload = {};
+    for (const [key, value] of formData.entries()) {
+      payload[key] = value;
+    }
+    return payload;
+  }
+
   const raw = await request.text();
   if (!raw) {
     return {};
@@ -522,6 +546,12 @@ function previewText(text) {
 
 function generateToken() {
   return crypto.randomUUID().replace(/-/g, "");
+}
+
+function ensureChatKv(env) {
+  if (!env?.CHAT_KV || typeof env.CHAT_KV.put !== "function") {
+    throw new HttpError(500, "Storage unavailable");
+  }
 }
 
 function isAdminRequest(request, env) {
