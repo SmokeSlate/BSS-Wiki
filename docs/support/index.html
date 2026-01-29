@@ -3,6 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      if (location.protocol === "http:" && location.hostname.endsWith("sm0ke.org")) {
+        location.replace(
+          `https://${location.host}${location.pathname}${location.search}${location.hash}`
+        );
+      }
+    </script>
     <title>Support Chat | Beat Saber Modding Wiki</title>
     <link rel="shortcut icon" href="/assets/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
