@@ -10,5 +10,5 @@ id = "fa0cf78eda63466e9f8f61ac267b9541"
 preview_id = "0face79ffbef480f9ea3c26e1acef936"
 
 [vars]
-ALLOWED_ORIGINS = "https://sm0ke.org,https://*.sm0ke.org"
+ALLOWED_ORIGINS = "*"
 
