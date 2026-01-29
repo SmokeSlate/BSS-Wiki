@@ -1,536 +1,921 @@
-<html>
+<!doctype html>
+<html lang="en">
   <head>
-    <script>
-      function fadeIn(elementId) {
-        const element = document.getElementById(elementId);
-        element.classList.remove("hidden");
-        element.style.opacity = "1";
-        void element.offsetWidth;
-        element.classList.add("visible");
-        element.style.opacity = "1";
-      }
-
-      function fadeOut(elementId) {
-        const element = document.getElementById(elementId);
-        element.style.opacity = "0";
-        setTimeout(() => {
-          element.classList.add("hidden");
-        }, 1500);
-      }
-
-      function toggleFade(elementId) {
-        const element = document.getElementById(elementId);
-        if (element.classList.contains("hidden")) {
-          element.classList.remove("hidden");
-          void element.offsetWidth;
-          element.classList.add("visible");
-          element.style.opacity = "1";
-        } else {
-          element.style.opacity = "0";
-          setTimeout(() => {
-            if (element.style.opacity === "0") {
-              element.classList.remove("visible");
-              element.classList.add("hidden");
-            }
-          }, 1000);
-        }
-      }
-    </script>
-    <title>Chat | Beat Saber Modding Wiki</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Support Chat | Beat Saber Modding Wiki</title>
     <link rel="shortcut icon" href="/assets/logo.png" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/@cometchat/chat-embed@1.x.x/dist/main.js"
-    ></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple-dark.css"
+    />
+    <link rel="stylesheet" href="https://wiki.sm0ke.org/support/chat.css" />
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
-    <style>
-      .fade {
-        opacity: 1;
-        transition: opacity 1s ease;
-      }
-      .visible {
-        display: block;
-        opacity: 1;
-      }
-      .markdown-spoiler {
-        border-radius: 0.2rem;
-        padding: 0 0.2rem;
-        color: inherit;
-        background-color: rgba(0, 0, 0, 0.15);
-        cursor: pointer;
-        transition: color 0.15s ease, background-color 0.15s ease;
-      }
-      .markdown-spoiler:not(.revealed) {
-        color: transparent;
-        background-color: currentColor;
-        text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
-      }
-      .markdown-spoiler.revealed {
-        color: inherit;
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    </style>
-  </head>
-  <body style="overflow: hidden; background: black">
-    <div
-      style="z-index: -50"
-      class="w-full h-full mt-0 m-0 border-0 fade rounded-none"
-      id="chat"
-    ></div>
+    </head>
+  <body class="support-page">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-nav" id="sidebar-content">Loading navigation...</div>
+      </aside>
+
+      <main class="content">
+        <section class="chat-shell">
+          <div class="chat-status">
+            <div class="status-block">
+              <span class="status-pill status-warn" id="status-pill">Connecting</span>
+              <span class="status-pill status-error presence-pill" id="presence-pill">
+                Support offline
+              </span>
+            </div>
+            <div class="chat-id">Chat ID <span id="chat-id"></span></div>
+          </div>
+          <div class="chat-log" id="chat-log">
+            <div class="empty-state" id="empty-state">
+              <p>Say hello and our support team will jump in.</p>
+            </div>
+          </div>
+
+          <footer class="chat-input">
+            <div class="composer-tools">
+              <button class="tool-btn" id="tool-image" type="button" title="Upload image">+</button>
+            </div>
+            <div class="input-wrap">
+              <textarea
+                id="message-input"
+                rows="2"
+                placeholder="Type a message or upload an image..."
+              ></textarea>
+              <div class="input-hint" id="input-hint">Shift + Enter for a new line.</div>
+            </div>
+            <button class="send-button" id="send-button" type="button">&gt;</button>
+          </footer>
+        </section>
+      </main>
+    </div>
+
+    <input id="imgur-input" type="file" accept="image/*" hidden />
+
     <script>
-      window.addEventListener("DOMContentLoaded", (event) => {
-        const COMETCHAT_CREDENTIALS = {
-          appID: "16715605cbc276637",
-          appRegion: "us",
-          authKey: "e2aaea3afaa91a7a315164738582ee0a42e8202e",
-        };
-        const cometChat = CometChatApp.CometChat;
-        const commandListenerId = "loginListener";
-        const SUPPORT_UID = "support";
-        const RECEIPT_TEXT = "Receved";
-
-        function isLoginCommand(text = "") {
-          return text.startsWith("/login");
-        }
-
-        function isReceiptMessage(text = "") {
-          return text.trim() === RECEIPT_TEXT;
-        }
-
-        function sendReceipt() {
-          const receiptMessage = new cometChat.TextMessage(
-            SUPPORT_UID,
-            RECEIPT_TEXT,
-            cometChat.RECEIVER_TYPE.USER
-          );
-          cometChat
-            .sendMessage(receiptMessage)
-            .then(() => console.log("Receipt sent"))
-            .catch((error) => console.error("Failed to send receipt:", error));
-        }
-
-        function handleCommand(text) {
-          if (!isLoginCommand(text)) {
-            return;
-          }
-          console.log("Command found:", text);
-          const uid = text.replace("/login", "");
-          localStorage.setItem("chatUser", uid);
-          location.reload();
-          sendReceipt();
-        }
-
-        function setupCommandDetection() {
-          const messagesRequest = new cometChat.MessagesRequestBuilder()
-            .setLimit(100)
-            .setUID(SUPPORT_UID)
-            .build();
-
-          messagesRequest.fetchPrevious().then(
-            (messages) => {
-              const sortedMessages = [...messages].sort((a, b) => {
-                const first =
-                  typeof a.getSentAt === "function" ? a.getSentAt() : 0;
-                const second =
-                  typeof b.getSentAt === "function" ? b.getSentAt() : 0;
-                return first - second;
-              });
-
-              const pendingCommands = [];
-
-              sortedMessages.forEach((message) => {
-                if (!(message instanceof cometChat.TextMessage)) {
-                  return;
-                }
-                const text = (message.getText() || "").trim();
-                if (isLoginCommand(text)) {
-                  pendingCommands.push(text);
-                  return;
-                }
-                if (isReceiptMessage(text) && pendingCommands.length) {
-                  pendingCommands.shift();
-                }
-              });
-
-              pendingCommands.forEach((commandText) => {
-                handleCommand(commandText);
-              });
-            },
-            (error) => {
-              console.log("Error fetching messages:", error);
-            }
-          );
-
-          // ensure duplicate listeners do not pile up on reload
-          cometChat.removeMessageListener(commandListenerId);
-          cometChat.addMessageListener(
-            commandListenerId,
-            new cometChat.MessageListener({
-              onTextMessageReceived: (textMessage) => {
-                const text = (textMessage.getText() || "").trim();
-                if (isLoginCommand(text)) {
-                  handleCommand(text);
-                }
-              },
-            })
-          );
-        }
-
-        let useruid =
-          localStorage.getItem("chatUser") || generateRandomText(6);
-        let usernew = localStorage.getItem("chatUser") === null;
-        let userdisplay = "Guest (" + useruid + ")";
-        let useravatar = "https://wiki.sm0ke.org/assets/logo.png";
-
-        CometChatApp.init(COMETCHAT_CREDENTIALS)
-          .then(() => {
-            registerMarkdownFormatter();
-            const user = new CometChatApp.CometChat.User(useruid);
-            user.setName(userdisplay);
-            user.setAvatar(useravatar);
-            return CometChatApp.createOrUpdateUser(user);
-          })
-          .then((chatuser) => {
-            localStorage.setItem("chatUser", chatuser.uid);
-            return CometChatApp.login({ uid: chatuser.uid });
-          })
-          .then((loggedInUser) => {
-            // Send automatic message to support
-            const textMessage = new CometChatApp.CometChat.TextMessage(
-              SUPPORT_UID, // receiver UID
-              "Hello, I need assistance, my uid is " +
-                loggedInUser.uid +
-                "\n\nNote for user: If you get logged out, please use /login " +
-                loggedInUser.uid +
-                " to log back in", // message text
-              CometChatApp.CometChat.RECEIVER_TYPE.USER
-            );
-            if (usernew) {
-              CometChatApp.CometChat.sendMessage(textMessage)
-                .then((message) => {
-                  console.log("Auto message sent:", message);
-                })
-                .catch((error) => {
-                  console.log("Message sending failed:", error);
-                });
-            }
-
-            // Launch the widget
-            return CometChatApp.launch({
-              targetElementID: "chat",
-              variantID: "6916997b5c867ddb852bdc2e",
-              isDocked: false,
-              height: "calc(100% + 1px)",
-              width: "100%",
-              roundedCorners: false,
-              defaultID: "support",
-              defaultType: "user",
-            });
-          })
-          .then(() => {
-            setupCommandDetection();
-          })
-          .catch((error) => console.error("[CometChat] Error:", error));
-      });
-      function generateRandomText(length) {
-        const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
-        let randomText = "";
-        for (let i = 0; i < length; i++) {
-          const randomIndex = Math.floor(Math.random() * charset.length);
-          randomText += charset[randomIndex];
-        }
-        return randomText;
-      }
-
-      // Basic Markdown helpers ------------------------------------------------
-      let markdownConfigured = false;
-
-      function ensureMarkdownDefaults() {
-        if (markdownConfigured || !window.marked) {
-          return;
-        }
-        window.marked.setOptions({
-          breaks: true,
-          gfm: true,
-        });
-        markdownConfigured = true;
-      }
-
-      const SPOILER_OPEN_TOKEN = "__CC_SPOILER_OPEN__";
-      const SPOILER_CLOSE_TOKEN = "__CC_SPOILER_CLOSE__";
-      const MARKDOWN_HINT_REGEX =
-        /(\*\*|__|~~|`{1,3}|\|\||^>\s|^\s{0,3}([-*+]|\d+\.)\s|!\[|\[[^\]]+\]\([^)]+\)|\n\s*\n)/m;
-      function preprocessDiscordMarkdown(markdownText = "") {
-        if (!markdownText) {
-          return "";
-        }
-        return markdownText
-          .replace(/\r\n/g, "\n")
-          .replace(/\|\|([\s\S]+?)\|\|/g, (_match, content) => {
-            return `${SPOILER_OPEN_TOKEN}${content}${SPOILER_CLOSE_TOKEN}`;
-          });
-      }
-
-      function postprocessDiscordMarkdown(html = "") {
-        if (!html) {
-          return "";
-        }
-        return html
-          .split(SPOILER_OPEN_TOKEN)
-          .join('<span class="markdown-spoiler">')
-          .split(SPOILER_CLOSE_TOKEN)
-          .join("</span>");
-      }
-
-      function applyMarkdownToElement(element, markdownText = "") {
-        const rendered = toMarkdownHtml(markdownText);
-        if (rendered.isPlain) {
-          element.textContent = rendered.html;
-        } else {
-          element.innerHTML = rendered.html;
-        }
-        element.dataset.markdownRendered = "true";
-      }
-
-      function toMarkdownHtml(markdownText = "") {
-        if (!window.marked || !window.DOMPurify) {
-          return { html: markdownText, isPlain: true };
-        }
-        ensureMarkdownDefaults();
-        const dirtyHtml = window.marked.parse(
-          preprocessDiscordMarkdown(markdownText)
-        );
-        const enrichedHtml = postprocessDiscordMarkdown(dirtyHtml);
-        return { html: window.DOMPurify.sanitize(enrichedHtml), isPlain: false };
-      }
-
-      function renderMarkdownBlock(element) {
-        if (!element || element.dataset.markdownRendered === "true") {
-          return;
-        }
-        const src = element.getAttribute("data-markdown-src");
-        if (src) {
-          fetch(src)
-            .then((response) => {
-              if (!response.ok) {
-                throw new Error("Response " + response.status);
-              }
-              return response.text();
-            })
-            .then((markdownText) => {
-              applyMarkdownToElement(element, markdownText);
-            })
-            .catch((error) => {
-              element.innerHTML =
-                '<p class="text-red-500">Unable to load content.</p>';
-              console.error("[Markdown] Failed to load", src, error);
-            });
-          return;
-        }
-        const inlineText = element.textContent ? element.textContent.trim() : "";
-        applyMarkdownToElement(element, inlineText);
-      }
-
-      function initMarkdownBlocks(scope = document) {
-        const blocks = scope.querySelectorAll("[data-markdown]");
-        blocks.forEach(renderMarkdownBlock);
-      }
-
-      window.renderMarkdown = function renderMarkdown(markdownText, target) {
-        const element =
-          typeof target === "string" ? document.querySelector(target) : target;
-        if (!element) {
-          console.warn("[Markdown] Target not found:", target);
-          return;
-        }
-        applyMarkdownToElement(element, markdownText);
+      const CHAT_API_BASE = "https://bsm-api.sm0ke.org";
+      const ALLTHEPICS_API_URL = "https://allthepics.net/api/1/upload";
+      const ALLTHEPICS_API_KEY =
+        "chv_AZqC_9d87633b66a965f4e4208a7d1894a6739d72b103223f8959c44f115f645f13ff_8b3b05a3f56bc81e037c805890a5d849a2d42dfbeb639da1c3e80d828149284f";
+      const POLL_INTERVAL_MS = 4000;
+      const STORAGE_KEYS = {
+        userId: "supportChatUserId",
+        token: "supportChatToken",
+        intro: "supportChatIntroSent",
+        notifyAsked: "supportChatNotifyAsked",
       };
 
-      document.addEventListener("DOMContentLoaded", () => {
-        initMarkdownBlocks();
-      });
+      const ui = {
+        log: document.getElementById("chat-log"),
+        input: document.getElementById("message-input"),
+        send: document.getElementById("send-button"),
+        status: document.getElementById("status-pill"),
+        chatId: document.getElementById("chat-id"),
+        empty: document.getElementById("empty-state"),
+        sidebar: document.getElementById("sidebar-content"),
+        toolImage: document.getElementById("tool-image"),
+        hint: document.getElementById("input-hint"),
+        imgurInput: document.getElementById("imgur-input"),
+      };
 
-      document.addEventListener("click", (event) => {
-        const spoiler = event.target.closest(".markdown-spoiler");
-        if (spoiler) {
-          spoiler.classList.toggle("revealed");
+      const state = {
+        userId: getOrCreateUserId(),
+        conversationId: null,
+        clientToken: localStorage.getItem(STORAGE_KEYS.token) || "",
+        displayName: "",
+        lastMessageAt: 0,
+        renderedIds: new Set(),
+        lastDayKey: "",
+        messageMap: new Map(),
+        notifiedIds: new Set(),
+      };
+
+      const defaultHint = "Shift + Enter for a new line.";
+      const TEXTAREA_MIN_HEIGHT = 48;
+      const TEXTAREA_MAX_HEIGHT = 160;
+
+      state.conversationId = state.userId;
+      state.displayName = `Guest (${state.userId})`;
+      ui.chatId.textContent = state.userId;
+
+      let markdownReady = false;
+      let pollTimer = null;
+      let notificationPrompted = false;
+      let notificationSound = null;
+
+      function getOrCreateUserId() {
+        const existing = localStorage.getItem(STORAGE_KEYS.userId);
+        if (existing) {
+          return existing;
         }
-      });
+        const generated = generateRandomText(6);
+        localStorage.setItem(STORAGE_KEYS.userId, generated);
+        return generated;
+      }
 
-      function shouldProcessMarkdown(text = "") {
-        if (!text || !text.trim()) {
+      function generateRandomText(length) {
+        const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
+        let result = "";
+        for (let i = 0; i < length; i += 1) {
+          const index = Math.floor(Math.random() * charset.length);
+          result += charset[index];
+        }
+        return result;
+      }
+
+      function setStatus(text, tone) {
+        ui.status.textContent = text;
+        ui.status.classList.remove("status-ok", "status-warn", "status-error");
+        if (tone === "ok") {
+          ui.status.classList.add("status-ok");
+        } else if (tone === "error") {
+          ui.status.classList.add("status-error");
+        } else {
+          ui.status.classList.add("status-warn");
+        }
+      }
+
+      function setPresence() {}
+
+      function setHint(message, tone) {
+        ui.hint.textContent = message;
+        ui.hint.classList.remove("warn", "error", "ok");
+        if (tone) {
+          ui.hint.classList.add(tone);
+        }
+      }
+
+      function resetHint() {
+        setHint(defaultHint);
+      }
+
+      async function attemptNotificationPrompt(force = false) {
+        if (!("Notification" in window)) {
           return false;
         }
-        return MARKDOWN_HINT_REGEX.test(text);
+        if (Notification.permission === "granted") {
+          return true;
+        }
+        if (Notification.permission === "denied") {
+          return false;
+        }
+        const askedBefore = localStorage.getItem(STORAGE_KEYS.notifyAsked) === "true";
+        if (!force && (notificationPrompted || askedBefore)) {
+          return false;
+        }
+        notificationPrompted = true;
+        localStorage.setItem(STORAGE_KEYS.notifyAsked, "true");
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === "default") {
+            notificationPrompted = false;
+            localStorage.removeItem(STORAGE_KEYS.notifyAsked);
+          }
+          return permission === "granted";
+        } catch (error) {
+          return false;
+        }
       }
 
-      function findFormatterHosts(possibleRoots = []) {
-        const matches = [];
-        const visited = new WeakSet();
-        const queue = [];
-        const MAX_NODES = 200;
-        const MAX_DEPTH = 4;
+      function getNotificationSound() {
+        if (notificationSound) {
+          return notificationSound;
+        }
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          return null;
+        }
+        notificationSound = new AudioContextClass();
+        return notificationSound;
+      }
 
-        possibleRoots
-          .filter(Boolean)
-          .forEach((value, index) => {
-            queue.push({
-              value,
-              depth: 0,
-              path: `root[${index}]`,
-            });
-          });
+      function playNotificationSound() {
+        const context = getNotificationSound();
+        if (!context) {
+          return;
+        }
+        const play = () => {
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.type = "sine";
+          oscillator.frequency.value = 880;
+          gain.gain.value = 0.08;
+          oscillator.connect(gain);
+          gain.connect(context.destination);
+          oscillator.start();
+          oscillator.stop(context.currentTime + 0.2);
+        };
+        if (context.state === "suspended") {
+          context.resume().then(play).catch(() => null);
+          return;
+        }
+        play();
+      }
 
-        while (queue.length && visited.size < MAX_NODES) {
-          const current = queue.shift();
-          if (!current) {
-            continue;
-          }
-          const { value, depth, path } = current;
-          const type = typeof value;
-          if (
-            !value ||
-            (type !== "object" && type !== "function") ||
-            visited.has(value)
-          ) {
-            continue;
-          }
-          visited.add(value);
+      function autoResizeTextarea() {
+        ui.input.style.height = "auto";
+        const next = Math.min(ui.input.scrollHeight, TEXTAREA_MAX_HEIGHT);
+        ui.input.style.height = `${Math.max(next, TEXTAREA_MIN_HEIGHT)}px`;
+      }
 
-          const hasFormatterApi =
-            typeof value.addFormatter === "function" ||
-            typeof value.registerFormatter === "function" ||
-            typeof value.register === "function" ||
-            typeof value.setFormatters === "function";
+      function disableComposer(message) {
+        ui.input.disabled = true;
+        ui.send.disabled = true;
+        ui.toolImage.disabled = true;
+        ui.input.placeholder = message;
+        ui.input.value = "";
+        autoResizeTextarea();
+      }
 
-          if (hasFormatterApi) {
-            matches.push({ host: value, path });
-          }
+      function checkConfig() {
+        if (!CHAT_API_BASE) {
+          setStatus("Chat backend not configured", "error");
+          disableComposer("Support chat is offline.");
+          return false;
+        }
+        return true;
+      }
 
-          if (depth >= MAX_DEPTH) {
-            continue;
-          }
+      function apiUrl(path) {
+        return CHAT_API_BASE.replace(/\/+$/, "") + path;
+      }
 
-          let childEntries = [];
+      async function fetchJson(url, options = {}) {
+        const response = await fetch(url, options);
+        const text = await response.text();
+        let data = {};
+        if (text) {
           try {
-            childEntries = Object.entries(value);
+            data = JSON.parse(text);
           } catch (error) {
-            continue;
-          }
-
-          for (let idx = 0; idx < childEntries.length && idx < 25; idx += 1) {
-            const [key, child] = childEntries[idx];
-            if (!child || (typeof child !== "object" && typeof child !== "function")) {
-              continue;
-            }
-            queue.push({
-              value: child,
-              depth: depth + 1,
-              path: `${path}.${key}`,
-            });
+            data = {};
           }
         }
-        return matches;
+        if (!response.ok) {
+          const message = data.error || response.statusText || "Request failed";
+          throw new Error(message);
+        }
+        return data;
       }
-      function registerMarkdownFormatter() {
-        const staticFormatterApis = [
-          CometChatApp?.CometChatTextFormatter,
-          window.CometChatTextFormatter,
-          CometChatApp?.TextFormatter,
-        ]
-          .map((host) => (host ? { host, path: "static" } : null))
-          .filter(Boolean);
 
-        const dynamicFormatterApis = findFormatterHosts([
-          CometChatApp,
-          window.CometChatApp,
-          window.CometChatWidget,
-          CometChatApp?.CometChat,
-          window.VisualBuilder,
-        ]);
+      function renderMarkdown(text) {
+        if (!window.marked || !window.DOMPurify) {
+          return { html: text, isHtml: false };
+        }
+        if (!markdownReady) {
+          window.marked.setOptions({ breaks: true, gfm: true });
+          markdownReady = true;
+        }
+        const dirty = window.marked.parse(formatSmallText(text || ""));
+        return {
+          html: window.DOMPurify.sanitize(dirty, { ADD_TAGS: ["small"] }),
+          isHtml: true,
+        };
+      }
 
-        const seenHosts = new WeakSet();
-        const formatterApis = [...staticFormatterApis, ...dynamicFormatterApis].filter(
-          ({ host }) => {
-            if (seenHosts.has(host)) {
-              return false;
-            }
-            seenHosts.add(host);
-            return true;
+      function formatSmallText(text) {
+        return text.replace(/(^|\n)-#\s?(.*?)(?=\n|$)/g, (match, prefix, content) => {
+          if (!content.trim()) {
+            return match;
           }
-        );
+          return `${prefix}<small>${content.trim()}</small>`;
+        });
+      }
 
-        if (!formatterApis.length) {
-          console.warn(
-            "[Markdown] No CometChat text formatter API detected; Markdown messages will render as plain text."
-          );
+      function formatTime(timestamp) {
+        if (!timestamp) {
+          return "";
+        }
+        return new Date(timestamp).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function dayKey(timestamp) {
+        if (!timestamp) {
+          return "";
+        }
+        return new Date(timestamp).toDateString();
+      }
+
+      function formatDayLabel(timestamp) {
+        if (!timestamp) {
+          return "";
+        }
+        const date = new Date(timestamp);
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfYesterday = new Date(startOfToday.getTime() - 86400000);
+        if (date >= startOfToday) {
+          return "Today";
+        }
+        if (date >= startOfYesterday) {
+          return "Yesterday";
+        }
+        return date.toLocaleDateString();
+      }
+
+      function appendDayDivider(timestamp) {
+        const divider = document.createElement("div");
+        divider.className = "day-divider";
+        const label = document.createElement("span");
+        label.textContent = formatDayLabel(timestamp);
+        divider.appendChild(label);
+        ui.log.appendChild(divider);
+      }
+
+      function extractImageUrls(text) {
+        const regex =
+          /https?:\/\/(?:i\.|cdn\.)?allthepics\.net\/[^\s]+?\.(?:png|jpe?g|gif|webp)(?:\?[^\s]+)?/g;
+        const matches = text.match(regex) || [];
+        let cleaned = text;
+        matches.forEach((url) => {
+          cleaned = cleaned.replace(url, "").trim();
+        });
+        return { cleanedText: cleaned, images: matches };
+      }
+
+      function canModifyMessage(message) {
+        return message.role === "user" && message.senderId === state.userId;
+      }
+
+      function buildMessageActions(message) {
+        if (!canModifyMessage(message)) {
+          return null;
+        }
+        const actions = document.createElement("div");
+        actions.className = "message-actions";
+
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.className = "message-action";
+        edit.textContent = "Edit";
+        edit.addEventListener("click", () => handleEditMessage(message));
+
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "message-action";
+        remove.textContent = "Delete";
+        remove.addEventListener("click", () => handleDeleteMessage(message));
+
+        actions.appendChild(edit);
+        actions.appendChild(remove);
+        return actions;
+      }
+
+      function buildMessageElement(message) {
+        const role = message.role === "support" ? "support" : message.role === "system" ? "system" : "user";
+        const wrapper = document.createElement("div");
+        wrapper.className = `message ${role}`;
+        wrapper.dataset.id = message.id || "";
+
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+
+        const { cleanedText, images } = extractImageUrls(message.text || "");
+
+        if (cleanedText) {
+          const body = document.createElement("div");
+          body.className = "body";
+          const rendered = renderMarkdown(cleanedText);
+          if (rendered.isHtml) {
+            body.innerHTML = rendered.html;
+          } else {
+            body.textContent = rendered.html;
+          }
+          bubble.appendChild(body);
+        }
+
+        if (images.length) {
+          const grid = document.createElement("div");
+          grid.className = "image-grid";
+          images.forEach((url) => {
+            const img = document.createElement("img");
+            img.src = url;
+            img.alt = "Uploaded image";
+            img.loading = "lazy";
+            grid.appendChild(img);
+          });
+          bubble.appendChild(grid);
+        }
+
+        const time = document.createElement("div");
+        time.className = "time";
+        time.textContent = formatTime(message.createdAt);
+        bubble.appendChild(time);
+
+        wrapper.appendChild(bubble);
+        const actions = buildMessageActions(message);
+        if (actions) {
+          wrapper.appendChild(actions);
+        }
+        return wrapper;
+      }
+
+      function updateEmptyState() {
+        ui.empty.style.display = state.renderedIds.size ? "none" : "block";
+      }
+
+      function isNearBottom() {
+        const offset = ui.log.scrollHeight - ui.log.scrollTop - ui.log.clientHeight;
+        return offset < 120;
+      }
+
+      function scrollToBottom() {
+        ui.log.scrollTop = ui.log.scrollHeight;
+      }
+
+      function renderMessages(messages, forceScroll) {
+        const previousLastMessageAt = state.lastMessageAt;
+        const offsetFromBottom = ui.log.scrollHeight - ui.log.scrollTop;
+        const hadMessages = state.renderedIds.size > 0;
+        ui.log.innerHTML = "";
+        state.renderedIds = new Set();
+        state.lastDayKey = "";
+        state.lastMessageAt = 0;
+        state.messageMap.clear();
+        appendMessages(messages, forceScroll, previousLastMessageAt, true);
+        if (!hadMessages || forceScroll) {
+          scrollToBottom();
+        } else {
+          const nextScrollTop = Math.max(0, ui.log.scrollHeight - offsetFromBottom);
+          ui.log.scrollTop = nextScrollTop;
+        }
+      }
+
+      function appendMessages(messages, forceScroll, previousLastMessageAt = 0, skipScroll = false) {
+        if (!Array.isArray(messages) || messages.length === 0) {
+          updateEmptyState();
           return;
         }
 
-        const markdownFormatter = {
-          id: "markdownFormatter",
-          parse: (text = "") =>
-            shouldProcessMarkdown(text) ? [{ start: 0, end: text.length }] : [],
-          matches: (text = "") =>
-            shouldProcessMarkdown(text) ? [{ start: 0, end: text.length }] : [],
-          format: (text = "") =>
-            shouldProcessMarkdown(text) ? toMarkdownHtml(text).html : text,
+        const sorted = [...messages].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        let hasNew = false;
+
+        sorted.forEach((message) => {
+          if (!message || !message.id || state.renderedIds.has(message.id)) {
+            return;
+          }
+
+          const key = dayKey(message.createdAt);
+          if (key && key !== state.lastDayKey) {
+            appendDayDivider(message.createdAt);
+            state.lastDayKey = key;
+          }
+
+          state.renderedIds.add(message.id);
+          const node = buildMessageElement(message);
+          ui.log.appendChild(node);
+          state.lastMessageAt = Math.max(state.lastMessageAt, message.createdAt || 0);
+          state.messageMap.set(message.id, message);
+          if (shouldNotify(message, previousLastMessageAt)) {
+            state.notifiedIds.add(message.id);
+            notifyMessage(message);
+          }
+          hasNew = true;
+        });
+
+        if (!skipScroll && hasNew && (forceScroll || isNearBottom())) {
+          scrollToBottom();
+        }
+
+        updateEmptyState();
+      }
+
+      async function postMessage(text, role) {
+        const payload = {
+          conversationId: state.conversationId,
+          senderId: state.userId,
+          senderName: state.displayName,
+          text,
+          role,
+          clientToken: state.clientToken,
         };
 
-        function tryRegister(hostEntry) {
-          if (!hostEntry || !hostEntry.host) {
-            return false;
-          }
-          const host = hostEntry.host;
-          try {
-            if (typeof host.addFormatter === "function") {
-              host.addFormatter(markdownFormatter);
-              console.debug("[Markdown] Registered via addFormatter on", hostEntry.path);
-              return true;
-            }
-            if (typeof host.registerFormatter === "function") {
-              host.registerFormatter(markdownFormatter);
-              console.debug("[Markdown] Registered via registerFormatter on", hostEntry.path);
-              return true;
-            }
-            if (typeof host.register === "function") {
-              host.register(markdownFormatter);
-              console.debug("[Markdown] Registered via register() on", hostEntry.path);
-              return true;
-            }
-            if (
-              typeof host.getFormatters === "function" &&
-              typeof host.setFormatters === "function"
-            ) {
-              const current = host.getFormatters() || [];
-              const next = current.filter(
-                (item) => item && item.id !== markdownFormatter.id
-              );
-              next.push(markdownFormatter);
-              host.setFormatters(next);
-              console.debug("[Markdown] Registered via get/setFormatters on", hostEntry.path);
-              return true;
-            }
-          } catch (error) {
-            console.warn(
-              "[Markdown] Failed to register Markdown formatter:",
-              error
-            );
-          }
-          return false;
+        const headers = { "Content-Type": "application/json" };
+        if (state.clientToken) {
+          headers["X-Client-Token"] = state.clientToken;
         }
 
-        const installed = formatterApis.some((api) => tryRegister(api));
-        if (!installed) {
-          console.warn(
-            "[Markdown] Unable to register Markdown formatter with the current CometChat build."
-          );
+        const data = await fetchJson(apiUrl("/api/messages"), {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        });
+
+        if (data.clientToken && data.clientToken !== state.clientToken) {
+          state.clientToken = data.clientToken;
+          localStorage.setItem(STORAGE_KEYS.token, data.clientToken);
+        }
+
+        return data;
+      }
+
+      async function updateMessage(messageId, text) {
+        const payload = {
+          conversationId: state.conversationId,
+          messageId,
+          text,
+          senderId: state.userId,
+          clientToken: state.clientToken,
+        };
+        const headers = { "Content-Type": "application/json" };
+        if (state.clientToken) {
+          headers["X-Client-Token"] = state.clientToken;
+        }
+        const data = await fetchJson(apiUrl("/api/messages"), {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify(payload),
+        });
+        if (data && data.message) {
+          state.messageMap.set(data.message.id, data.message);
+          replaceMessageNode(data.message);
         }
       }
+
+      async function deleteMessage(messageId) {
+        const payload = {
+          conversationId: state.conversationId,
+          messageId,
+          senderId: state.userId,
+          clientToken: state.clientToken,
+        };
+        const headers = { "Content-Type": "application/json" };
+        if (state.clientToken) {
+          headers["X-Client-Token"] = state.clientToken;
+        }
+        await fetchJson(apiUrl("/api/messages"), {
+          method: "DELETE",
+          headers,
+          body: JSON.stringify(payload),
+        });
+        removeMessageNode(messageId);
+      }
+
+      function replaceMessageNode(message) {
+        const existing = ui.log.querySelector(`[data-id="${message.id}"]`);
+        const node = buildMessageElement(message);
+        if (existing) {
+          existing.replaceWith(node);
+        } else {
+          state.renderedIds.add(message.id);
+          ui.log.appendChild(node);
+        }
+      }
+
+      function removeMessageNode(messageId) {
+        const existing = ui.log.querySelector(`[data-id="${messageId}"]`);
+        if (existing) {
+          existing.remove();
+        }
+        state.renderedIds.delete(messageId);
+        state.messageMap.delete(messageId);
+        updateEmptyState();
+      }
+
+      async function handleEditMessage(message) {
+        const current = message.text || "";
+        const next = window.prompt("Edit message:", current);
+        if (next === null) {
+          return;
+        }
+        const trimmed = next.trim();
+        if (!trimmed || trimmed === current) {
+          return;
+        }
+        setHint("Saving edit...", "warn");
+        try {
+          await updateMessage(message.id, trimmed);
+          setHint("Message updated.", "ok");
+        } catch (error) {
+          setHint("Edit failed.", "error");
+        } finally {
+          setTimeout(resetHint, 2500);
+        }
+      }
+
+      async function handleDeleteMessage(message) {
+        if (!window.confirm("Delete this message?")) {
+          return;
+        }
+        setHint("Deleting message...", "warn");
+        try {
+          await deleteMessage(message.id);
+          setHint("Message deleted.", "ok");
+        } catch (error) {
+          setHint("Delete failed.", "error");
+        } finally {
+          setTimeout(resetHint, 2500);
+        }
+      }
+
+      async function loadMessages() {
+        const params = new URLSearchParams({ conversationId: state.conversationId });
+        if (state.clientToken) {
+          params.set("token", state.clientToken);
+        }
+
+        const data = await fetchJson(apiUrl(`/api/messages?${params.toString()}`));
+        renderMessages(data.messages || [], false);
+      }
+
+      function shouldNotify(message, previousLastMessageAt) {
+        if (!message || message.role === "user") {
+          return false;
+        }
+        if (message.deletedAt) {
+          return false;
+        }
+        if (!previousLastMessageAt || message.createdAt <= previousLastMessageAt) {
+          return false;
+        }
+        if (state.notifiedIds.has(message.id)) {
+          return false;
+        }
+        if (document.hasFocus()) {
+          return false;
+        }
+        return true;
+      }
+
+      function notifyMessage(message) {
+        if ("Notification" in window && Notification.permission === "granted") {
+          const notification = new Notification("Support reply", {
+            body: (message.text || "").slice(0, 160),
+          });
+          notification.onclick = () => window.focus();
+          return;
+        }
+        playNotificationSound();
+      }
+
+      async function sendIntroMessage() {
+        const introSent = localStorage.getItem(STORAGE_KEYS.intro) === "true";
+        const text = introSent
+          ? `Chat session resumed. User ID: ${state.userId}`
+          : "Hello, I need assistance. I have tried turning off/on and waiting and read faq at https://wiki.sm0ke.org/#/faq";
+        const data = await postMessage(text, "system");
+        localStorage.setItem(STORAGE_KEYS.intro, "true");
+        if (data && data.message) {
+          const previousLastMessageAt = state.lastMessageAt;
+          appendMessages([data.message], true, previousLastMessageAt);
+        }
+      }
+
+      async function handleSend() {
+        const text = ui.input.value.trim();
+        if (!text) {
+          return;
+        }
+        ui.send.disabled = true;
+        try {
+          const data = await postMessage(text, "user");
+          ui.input.value = "";
+          autoResizeTextarea();
+          if (data && data.message) {
+            const previousLastMessageAt = state.lastMessageAt;
+            appendMessages([data.message], true, previousLastMessageAt);
+          }
+          setStatus("Online", "ok");
+        } catch (error) {
+          setStatus("Send failed", "error");
+        } finally {
+          ui.send.disabled = false;
+        }
+      }
+
+      async function sendImageMessage(urls) {
+        if (!urls) {
+          return;
+        }
+        ui.send.disabled = true;
+        try {
+          const data = await postMessage(urls, "user");
+          if (data && data.message) {
+            const previousLastMessageAt = state.lastMessageAt;
+            appendMessages([data.message], true, previousLastMessageAt);
+          }
+        } catch (error) {
+          setHint("Image send failed.", "error");
+        } finally {
+          ui.send.disabled = false;
+        }
+      }
+
+      function slugify(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          .replace(/[\s_]+/g, "-")
+          .replace(/[^a-z0-9-]/g, "")
+          .replace(/-+/g, "-");
+      }
+
+      function normalizeDocsifyHref(rawHref) {
+        if (!rawHref) {
+          return rawHref;
+        }
+        if (rawHref.startsWith("http") || rawHref.startsWith("mailto:")) {
+          return rawHref;
+        }
+        if (rawHref === "/") {
+          return rawHref;
+        }
+        const [pathPart, hashPart] = rawHref.split("#");
+        if (!pathPart) {
+          return rawHref;
+        }
+        const trimmedPath = pathPart.replace(/^\/+/, "");
+        if (!trimmedPath.endsWith(".md")) {
+          return rawHref;
+        }
+        const base = trimmedPath.slice(0, -3);
+        let next = `/#/${base}`;
+        if (hashPart) {
+          next += `?id=${slugify(hashPart)}`;
+        }
+        return next;
+      }
+
+      function rewriteSidebarLinks() {
+        const links = ui.sidebar.querySelectorAll("a");
+        links.forEach((link) => {
+          const rawHref = link.getAttribute("href") || "";
+          const updated = normalizeDocsifyHref(rawHref);
+          if (updated && updated !== rawHref) {
+            link.setAttribute("href", updated);
+          }
+        });
+      }
+
+      function highlightSidebar() {
+        const currentHash = window.location.hash;
+        const links = ui.sidebar.querySelectorAll("a");
+        links.forEach((link) => {
+          const href = link.getAttribute("href") || "";
+          const normalized = href.startsWith("/#") ? `#${href.slice(2)}` : href;
+          if (normalized && currentHash.startsWith(normalized)) {
+            link.classList.add("active");
+          }
+        });
+      }
+
+      async function loadSidebar() {
+        try {
+          const response = await fetch("/_sidebar.md", { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error("Failed");
+          }
+          const markdown = await response.text();
+          const html = window.marked.parse(markdown);
+          const safe = window.DOMPurify.sanitize(html, {
+            ADD_TAGS: ["img"],
+            ADD_ATTR: ["style", "href", "src", "alt", "title"],
+          });
+          ui.sidebar.innerHTML = safe;
+          rewriteSidebarLinks();
+          highlightSidebar();
+        } catch (error) {
+          ui.sidebar.textContent = "Unable to load navigation.";
+        }
+      }
+
+      async function uploadToAllThePics(file) {
+        const formData = new FormData();
+        formData.append("source", file);
+        formData.append("key", ALLTHEPICS_API_KEY);
+        formData.append("format", "json");
+        const response = await fetch(ALLTHEPICS_API_URL, {
+          method: "POST",
+          body: formData,
+        });
+        const text = await response.text();
+        let data = {};
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (error) {
+            data = {};
+          }
+        }
+        if (!response.ok || data?.success === false || (data?.status_code || 0) >= 400) {
+          const message =
+            data?.error?.message ||
+            data?.error ||
+            data?.message ||
+            "Upload failed";
+          throw new Error(message);
+        }
+        const link =
+          data?.image?.url ||
+          data?.image?.display_url ||
+          data?.image?.url_viewer ||
+          data?.data?.url ||
+          data?.data?.link;
+        if (!link) {
+          throw new Error("Upload failed");
+        }
+        return link;
+      }
+
+      async function handleImageUpload() {
+        const files = Array.from(ui.imgurInput.files || []);
+        ui.imgurInput.value = "";
+        if (!files.length) {
+          return;
+        }
+        setHint("Uploading image...", "warn");
+        ui.send.disabled = true;
+        ui.input.disabled = true;
+        ui.toolImage.disabled = true;
+
+        try {
+          const links = [];
+          for (const file of files) {
+            const link = await uploadToAllThePics(file);
+            links.push(link);
+          }
+          const joined = links.join(" ");
+          if (ui.input.value.trim()) {
+            ui.input.value = `${ui.input.value.trim()} ${joined}`;
+            setHint("Image added.", "ok");
+            autoResizeTextarea();
+          } else {
+            await sendImageMessage(joined);
+            setHint("Image sent.", "ok");
+          }
+        } catch (error) {
+          setHint("Image upload failed.", "error");
+        } finally {
+          ui.send.disabled = false;
+          ui.input.disabled = false;
+          ui.toolImage.disabled = false;
+          setTimeout(resetHint, 2500);
+        }
+      }
+
+      async function bootstrap() {
+        loadSidebar();
+        if (!checkConfig()) {
+          return;
+        }
+
+        setStatus("Connecting", "warn");
+
+        try {
+          if (!state.clientToken) {
+            await sendIntroMessage();
+          }
+          await loadMessages();
+          setStatus("Online", "ok");
+        } catch (error) {
+          setStatus("Offline", "error");
+        }
+
+        pollTimer = setInterval(() => {
+          loadMessages().catch(() => setStatus("Offline", "error"));
+        }, POLL_INTERVAL_MS);
+        attemptNotificationPrompt().catch(() => null);
+      }
+
+      document.addEventListener(
+        "click",
+        () => {
+          attemptNotificationPrompt(true).catch(() => null);
+          const context = getNotificationSound();
+          if (context && context.state === "suspended") {
+            context.resume().catch(() => null);
+          }
+        },
+        { once: true }
+      );
+
+      ui.send.addEventListener("click", handleSend);
+      ui.input.addEventListener("input", autoResizeTextarea);
+      ui.input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          handleSend();
+        }
+      });
+      ui.toolImage.addEventListener("click", () => ui.imgurInput.click());
+      ui.imgurInput.addEventListener("change", handleImageUpload);
+
+      autoResizeTextarea();
+      bootstrap();
     </script>
   </body>
 </html>
+
