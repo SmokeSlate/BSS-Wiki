@@ -447,7 +447,7 @@ a {
 .chat-input,
 .composer {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 12px;
   padding: 10px 12px;
   background: transparent;

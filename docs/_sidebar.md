@@ -9,3 +9,7 @@
 * [PC](/pc.md)
   * [BSManager](/pc.md#BSManager)
   * [Recommended Mods](/modsPC.md)
+* Support
+  * [Frequently Asked Questions](/faq.md)
+  * [Support Chat](/support ':ignore')
+  * [Discord](https://d.sm0ke.org)
