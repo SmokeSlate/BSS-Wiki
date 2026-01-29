@@ -134,6 +134,10 @@ export default {
         return await handlePostMessage(request, env, ctx);
       }
 
+      if (path === "/api/stream" && request.method === "GET") {
+        return await handleStream(request, env);
+      }
+
       if (path === "/api/messages" && request.method === "PATCH") {
         return await handlePatchMessage(request, env);
       }
@@ -193,13 +197,13 @@ async function handleGetMessages(request, env) {
   }
 
   const isAdmin = isAdminRequest(request, env);
+  const conversation = await readConversation(env, conversationId);
   if (!isAdmin) {
     const token =
       url.searchParams.get("token") ||
       request.headers.get("X-Client-Token") ||
       "";
-    const meta = await readConversation(env, conversationId);
-    if (!meta || !token || token !== meta.token) {
+    if (!conversation || !token || token !== conversation.token) {
       throw new HttpError(403, "Unauthorized");
     }
   }
@@ -217,8 +221,11 @@ async function handleGetMessages(request, env) {
   }
   limit = Math.min(limit, MAX_MESSAGES);
 
-  const messages = await readMessages(env, {
-    conversationId,
+  if (!conversation) {
+    return jsonResponse({ messages: [] }, 200, request, env);
+  }
+
+  const messages = readMessagesFromJson(conversation.messagesJson, {
     after,
     limit,
     includeDeleted: isAdmin,
@@ -233,6 +240,129 @@ async function handleGetMessages(request, env) {
   }
 
   return jsonResponse({ messages: filtered }, 200, request, env);
+}
+
+async function handleStream(request, env) {
+  ensureDb(env);
+  const url = new URL(request.url);
+  const conversationId = (url.searchParams.get("conversationId") || "").trim();
+  if (!conversationId) {
+    throw new HttpError(400, "conversationId required");
+  }
+
+  const isAdmin = isAdminRequest(request, env);
+  const token =
+    url.searchParams.get("token") ||
+    request.headers.get("X-Client-Token") ||
+    "";
+  if (!isAdmin) {
+    const meta = await readConversation(env, conversationId);
+    if (!meta || !token || token !== meta.token) {
+      throw new HttpError(403, "Unauthorized");
+    }
+  }
+
+  const afterParam = url.searchParams.get("after");
+  let lastMessageAt = afterParam ? Number(afterParam) : 0;
+  if (Number.isNaN(lastMessageAt) || lastMessageAt < 0) {
+    lastMessageAt = 0;
+  }
+
+  const encoder = new TextEncoder();
+  let closed = false;
+  let pollTimer = null;
+  let heartbeatTimer = null;
+  let idlePolls = 0;
+  let inFlight = false;
+
+  const write = (controller, payload) => {
+    controller.enqueue(encoder.encode(payload));
+  };
+
+  const sendEvent = (controller, event, data) => {
+    write(controller, `event: ${event}\n`);
+    write(controller, `data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  const sendComment = (controller, comment) => {
+    write(controller, `: ${comment}\n\n`);
+  };
+
+  const schedulePoll = (controller) => {
+    const delay = idlePolls > 2 ? 15000 : 5000;
+    pollTimer = setTimeout(async () => {
+      if (closed) {
+        return;
+      }
+      if (inFlight) {
+        schedulePoll(controller);
+        return;
+      }
+      inFlight = true;
+      try {
+        const conversation = await readConversation(env, conversationId);
+        if (!conversation) {
+          idlePolls = Math.min(idlePolls + 1, 5);
+          schedulePoll(controller);
+          return;
+        }
+        const messages = readMessagesFromJson(conversation.messagesJson, {
+          after: lastMessageAt,
+          limit: MAX_MESSAGES,
+          includeDeleted: isAdmin,
+        });
+        if (messages.length) {
+          lastMessageAt = Math.max(
+            lastMessageAt,
+            ...messages.map((msg) => msg.createdAt || 0)
+          );
+          sendEvent(controller, "messages", { messages });
+          idlePolls = 0;
+        } else {
+          idlePolls = Math.min(idlePolls + 1, 5);
+        }
+      } catch (error) {
+        sendEvent(controller, "error", {
+          error: error && error.message ? error.message : "Stream error",
+        });
+      } finally {
+        inFlight = false;
+        schedulePoll(controller);
+      }
+    }, delay);
+  };
+
+  const stream = new ReadableStream({
+    start(controller) {
+      write(controller, "retry: 5000\n\n");
+      sendComment(controller, "connected");
+      schedulePoll(controller);
+      heartbeatTimer = setInterval(() => {
+        if (!closed) {
+          sendComment(controller, "ping");
+        }
+      }, 25000);
+    },
+    cancel() {
+      closed = true;
+      if (pollTimer) {
+        clearTimeout(pollTimer);
+      }
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      ...corsHeaders(request, env),
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }
 
 async function handlePostMessage(request, env, ctx) {
@@ -265,15 +395,15 @@ async function handlePostMessage(request, env, ctx) {
   }
 
   const now = Date.now();
-  const existing = await readConversation(env, conversationId);
+  const conversation = await readConversation(env, conversationId);
 
   const providedToken = payload.clientToken || request.headers.get("X-Client-Token") || "";
-  if (existing && role !== "support") {
-    if (!providedToken || providedToken !== existing.token) {
+  if (conversation && role !== "support") {
+    if (!providedToken || providedToken !== conversation.token) {
       throw new HttpError(403, "Unauthorized");
     }
   }
-  let clientToken = existing?.token || providedToken;
+  let clientToken = conversation?.token || providedToken;
   if (!clientToken) {
     clientToken = generateToken();
   }
@@ -288,18 +418,11 @@ async function handlePostMessage(request, env, ctx) {
     createdAt: now,
   };
 
-  const conversationName = existing?.name || senderName || `Guest ${conversationId}`;
-  const insertMessage = env.DB.prepare(
-    "INSERT INTO messages (id, conversation_id, sender_id, sender_name, text, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  ).bind(
-    message.id,
-    conversationId,
-    senderId,
-    senderName,
-    text,
-    role,
-    now
-  );
+  const conversationName = conversation?.name || senderName || `Guest ${conversationId}`;
+  const messages = parseMessagesJson(conversation?.messagesJson);
+  messages.push(message);
+  const trimmed = messages.length > MAX_MESSAGES ? messages.slice(-MAX_MESSAGES) : messages;
+
   const upsertConversation = env.DB.prepare(
     `INSERT INTO conversations (
       id,
@@ -309,15 +432,17 @@ async function handlePostMessage(request, env, ctx) {
       last_message_preview,
       last_message_role,
       last_message_sender_name,
-      token
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      token,
+      messages_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       name = COALESCE(NULLIF(conversations.name, ''), excluded.name),
       last_message_at = excluded.last_message_at,
       last_message_preview = excluded.last_message_preview,
       last_message_role = excluded.last_message_role,
       last_message_sender_name = excluded.last_message_sender_name,
-      token = COALESCE(conversations.token, excluded.token)`
+      token = COALESCE(conversations.token, excluded.token),
+      messages_json = excluded.messages_json`
   ).bind(
     conversationId,
     conversationName,
@@ -326,20 +451,11 @@ async function handlePostMessage(request, env, ctx) {
     previewText(text),
     role,
     senderName,
-    clientToken
+    clientToken,
+    JSON.stringify(trimmed)
   );
-  const pruneMessages = env.DB.prepare(
-    `DELETE FROM messages
-      WHERE conversation_id = ?
-        AND id NOT IN (
-          SELECT id FROM messages
-            WHERE conversation_id = ?
-            ORDER BY created_at DESC
-            LIMIT ?
-        )`
-  ).bind(conversationId, conversationId, MAX_MESSAGES);
 
-  await env.DB.batch([insertMessage, upsertConversation, pruneMessages]);
+  await upsertConversation.run();
 
   notifyWebhook(message, payload, env, ctx);
 
@@ -374,21 +490,23 @@ async function handlePatchMessage(request, env) {
     new URL(request.url).searchParams.get("token") ||
     "";
 
-  const meta = await readConversation(env, conversationId);
-  if (!meta) {
+  const conversation = await readConversation(env, conversationId);
+  if (!conversation) {
     throw new HttpError(404, "Conversation not found");
   }
 
   if (!isAdmin) {
-    if (!token || token !== meta.token) {
+    if (!token || token !== conversation.token) {
       throw new HttpError(403, "Unauthorized");
     }
   }
 
-  const message = await readMessage(env, conversationId, messageId);
-  if (!message) {
+  const messages = parseMessagesJson(conversation.messagesJson);
+  const index = messages.findIndex((item) => item.id === messageId);
+  if (index === -1) {
     throw new HttpError(404, "Message not found");
   }
+  const message = messages[index];
   if (!isAdmin) {
     if (!senderId || senderId !== message.senderId || message.role === "support") {
       throw new HttpError(403, "Unauthorized");
@@ -400,11 +518,6 @@ async function handlePatchMessage(request, env) {
 
   const now = Date.now();
   const editedBy = isAdmin ? "admin" : senderId;
-  const originalText = message.originalText || (message.text !== text ? message.text : null);
-  await env.DB.prepare(
-    "UPDATE messages SET text = ?, edited_at = ?, edited_by = ?, original_text = COALESCE(original_text, ?) WHERE id = ? AND conversation_id = ?"
-  ).bind(text, now, editedBy, originalText, messageId, conversationId).run();
-
   const updated = {
     ...message,
     text,
@@ -414,7 +527,9 @@ async function handlePatchMessage(request, env) {
   if (!message.originalText && message.text !== text) {
     updated.originalText = message.text;
   }
-  await updateConversationFromLatest(env, conversationId);
+  messages[index] = updated;
+  const lastVisible = getLastVisibleMessage(messages);
+  await updateConversationRecord(env, conversationId, messages, lastVisible);
 
   return jsonResponse({ ok: true, message: updated }, 200, request, env);
 }
@@ -438,18 +553,20 @@ async function handleDeleteMessage(request, env) {
     new URL(request.url).searchParams.get("token") ||
     "";
 
-  const meta = await readConversation(env, conversationId);
-  if (!meta) {
+  const conversation = await readConversation(env, conversationId);
+  if (!conversation) {
     throw new HttpError(404, "Conversation not found");
   }
 
   if (!isAdmin) {
-    if (!token || token !== meta.token) {
+    if (!token || token !== conversation.token) {
       throw new HttpError(403, "Unauthorized");
     }
   }
 
-  const target = await readMessage(env, conversationId, messageId);
+  const messages = parseMessagesJson(conversation.messagesJson);
+  const index = messages.findIndex((item) => item.id === messageId);
+  const target = index === -1 ? null : messages[index];
   if (!target) {
     throw new HttpError(404, "Message not found");
   }
@@ -467,11 +584,6 @@ async function handleDeleteMessage(request, env) {
 
   const now = Date.now();
   const deletedBy = isAdmin ? "admin" : senderId;
-  const originalText = target.originalText || target.text;
-  await env.DB.prepare(
-    "UPDATE messages SET deleted_at = ?, deleted_by = ?, original_text = COALESCE(original_text, ?) WHERE id = ? AND conversation_id = ?"
-  ).bind(now, deletedBy, originalText, messageId, conversationId).run();
-
   const updated = {
     ...target,
     deletedAt: now,
@@ -480,7 +592,9 @@ async function handleDeleteMessage(request, env) {
   if (!updated.originalText) {
     updated.originalText = target.originalText || target.text;
   }
-  await updateConversationFromLatest(env, conversationId);
+  messages[index] = updated;
+  const lastVisible = getLastVisibleMessage(messages);
+  await updateConversationRecord(env, conversationId, messages, lastVisible);
 
   const responseBody = isAdmin ? { ok: true, message: updated } : { ok: true };
   return jsonResponse(responseBody, 200, request, env);
@@ -551,7 +665,8 @@ async function readConversation(env, conversationId) {
       last_message_preview as lastMessagePreview,
       last_message_role as lastMessageRole,
       last_message_sender_name as lastMessageSenderName,
-      token
+      token,
+      messages_json as messagesJson
     FROM conversations
     WHERE id = ?`
   ).bind(conversationId).first();
@@ -567,120 +682,89 @@ async function readConversation(env, conversationId) {
     lastMessageRole: row.lastMessageRole || "",
     lastMessageSenderName: row.lastMessageSenderName || "",
     token: row.token || "",
+    messagesJson: row.messagesJson || "[]",
   };
 }
 
-async function readMessage(env, conversationId, messageId) {
-  ensureDb(env);
-  const row = await env.DB.prepare(
-    `SELECT
-      id,
-      conversation_id as conversationId,
-      sender_id as senderId,
-      sender_name as senderName,
-      text,
-      role,
-      created_at as createdAt,
-      edited_at as editedAt,
-      edited_by as editedBy,
-      deleted_at as deletedAt,
-      deleted_by as deletedBy,
-      original_text as originalText
-    FROM messages
-    WHERE conversation_id = ? AND id = ?`
-  ).bind(conversationId, messageId).first();
-  return row ? normalizeMessageRow(row) : null;
+function parseMessagesJson(raw) {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const data = JSON.parse(raw);
+    return Array.isArray(data)
+      ? data.map((msg) => normalizeMessage(msg)).filter(Boolean)
+      : [];
+  } catch (error) {
+    return [];
+  }
 }
 
-async function readMessages(env, { conversationId, after = 0, limit = MAX_MESSAGES, includeDeleted }) {
-  ensureDb(env);
-  const params = [conversationId];
-  let where = "conversation_id = ?";
+function normalizeMessage(message) {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+  return {
+    id: message.id || "",
+    conversationId: message.conversationId || "",
+    senderId: message.senderId || "",
+    senderName: message.senderName || "",
+    text: message.text || "",
+    role: message.role || "user",
+    createdAt: message.createdAt || 0,
+    editedAt: message.editedAt || null,
+    editedBy: message.editedBy || "",
+    deletedAt: message.deletedAt || null,
+    deletedBy: message.deletedBy || "",
+    originalText: message.originalText || "",
+  };
+}
+
+function readMessagesFromJson(messagesJson, { after = 0, limit = MAX_MESSAGES, includeDeleted }) {
+  const raw = parseMessagesJson(messagesJson).filter((item) => item && item.id);
+  let messages = raw;
   if (!includeDeleted) {
-    where += " AND deleted_at IS NULL";
+    messages = messages.filter((msg) => !msg.deletedAt);
   }
   if (after) {
-    where += " AND created_at > ?";
-    params.push(after);
+    messages = messages.filter((msg) => (msg.createdAt || 0) > after);
   }
-  const order = after ? "ASC" : "DESC";
-  const query = `SELECT
-      id,
-      conversation_id as conversationId,
-      sender_id as senderId,
-      sender_name as senderName,
-      text,
-      role,
-      created_at as createdAt,
-      edited_at as editedAt,
-      edited_by as editedBy,
-      deleted_at as deletedAt,
-      deleted_by as deletedBy,
-      original_text as originalText
-    FROM messages
-    WHERE ${where}
-    ORDER BY created_at ${order}
-    LIMIT ?`;
-  params.push(limit);
-  const result = await env.DB.prepare(query).bind(...params).all();
-  const rows = (result.results || []).map((row) => normalizeMessageRow(row));
-  if (!after) {
-    rows.reverse();
+  if (messages.length > limit) {
+    messages = after ? messages.slice(0, limit) : messages.slice(-limit);
   }
-  return rows;
+  return messages;
 }
 
-async function getLastVisibleMessage(env, conversationId) {
-  ensureDb(env);
-  const row = await env.DB.prepare(
-    `SELECT
-      id,
-      conversation_id as conversationId,
-      sender_id as senderId,
-      sender_name as senderName,
-      text,
-      role,
-      created_at as createdAt,
-      edited_at as editedAt,
-      edited_by as editedBy,
-      deleted_at as deletedAt,
-      deleted_by as deletedBy,
-      original_text as originalText
-    FROM messages
-    WHERE conversation_id = ? AND deleted_at IS NULL
-    ORDER BY created_at DESC
-    LIMIT 1`
-  ).bind(conversationId).first();
-  return row ? normalizeMessageRow(row) : null;
+function getLastVisibleMessage(messages) {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (!messages[i].deletedAt) {
+      return messages[i];
+    }
+  }
+  return null;
 }
 
-async function updateConversationFromLatest(env, conversationId) {
-  const lastVisible = await getLastVisibleMessage(env, conversationId);
-  if (lastVisible) {
-    await env.DB.prepare(
-      `UPDATE conversations
-        SET last_message_at = ?,
-            last_message_preview = ?,
-            last_message_role = ?,
-            last_message_sender_name = ?
-        WHERE id = ?`
-    ).bind(
-      lastVisible.createdAt || 0,
-      previewText(lastVisible.text || ""),
-      lastVisible.role || "user",
-      lastVisible.senderName || "",
-      conversationId
-    ).run();
-    return;
-  }
+async function updateConversationRecord(env, conversationId, messages, lastVisible) {
+  const lastMessageAt = lastVisible ? lastVisible.createdAt || 0 : 0;
+  const lastMessagePreview = lastVisible ? previewText(lastVisible.text || "") : "";
+  const lastMessageRole = lastVisible ? lastVisible.role || "user" : "";
+  const lastMessageSenderName = lastVisible ? lastVisible.senderName || "" : "";
   await env.DB.prepare(
     `UPDATE conversations
-      SET last_message_at = 0,
-          last_message_preview = "",
-          last_message_role = "",
-          last_message_sender_name = ""
+      SET last_message_at = ?,
+          last_message_preview = ?,
+          last_message_role = ?,
+          last_message_sender_name = ?,
+          messages_json = ?
       WHERE id = ?`
-  ).bind(conversationId).run();
+  ).bind(
+    lastMessageAt,
+    lastMessagePreview,
+    lastMessageRole,
+    lastMessageSenderName,
+    JSON.stringify(messages),
+    conversationId
+  ).run();
 }
 
 function previewText(text) {
@@ -701,22 +785,6 @@ function ensureDb(env) {
   }
 }
 
-function normalizeMessageRow(row) {
-  return {
-    id: row.id,
-    conversationId: row.conversationId,
-    senderId: row.senderId,
-    senderName: row.senderName || "",
-    text: row.text || "",
-    role: row.role || "user",
-    createdAt: row.createdAt || 0,
-    editedAt: row.editedAt || null,
-    editedBy: row.editedBy || "",
-    deletedAt: row.deletedAt || null,
-    deletedBy: row.deletedBy || "",
-    originalText: row.originalText || "",
-  };
-}
 
 function isAdminRequest(request, env) {
   if (!env.ADMIN_KEY) {

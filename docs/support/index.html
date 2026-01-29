@@ -73,6 +73,7 @@
       const CHAT_API_BASE = "https://bsm-api.sm0ke.org";
       const UPLOAD_API_PATH = "/api/uploads";
       const POLL_INTERVAL_MS = 4000;
+      const POLL_IDLE_MS = 12000;
       const STORAGE_KEYS = {
         userId: "supportChatUserId",
         token: "supportChatToken",
@@ -115,6 +116,8 @@
 
       let markdownReady = false;
       let pollTimer = null;
+      let idlePolls = 0;
+      let eventSource = null;
       let notificationPrompted = false;
       let notificationSound = null;
 
@@ -639,6 +642,11 @@
         if (incremental) {
           const previousLastMessageAt = state.lastMessageAt;
           appendMessages(data.messages || [], false, previousLastMessageAt);
+          if (data.messages && data.messages.length) {
+            idlePolls = 0;
+          } else {
+            idlePolls = Math.min(idlePolls + 1, 5);
+          }
           return;
         }
         renderMessages(data.messages || [], false);
@@ -861,6 +869,74 @@
         }
       }
 
+      function schedulePoll() {
+        if (eventSource) {
+          return;
+        }
+        if (pollTimer) {
+          clearTimeout(pollTimer);
+        }
+        const delay = idlePolls > 2 ? POLL_IDLE_MS : POLL_INTERVAL_MS;
+        pollTimer = setTimeout(() => {
+          loadMessages({ incremental: true })
+            .catch(() => setStatus("Offline", "error"))
+            .finally(schedulePoll);
+        }, delay);
+      }
+
+      function startStream() {
+        if (!("EventSource" in window)) {
+          return false;
+        }
+        if (eventSource) {
+          eventSource.close();
+        }
+        const params = new URLSearchParams({ conversationId: state.conversationId });
+        if (state.clientToken) {
+          params.set("token", state.clientToken);
+        }
+        if (state.lastMessageAt) {
+          params.set("after", String(state.lastMessageAt));
+        }
+        const url = apiUrl(`/api/stream?${params.toString()}`);
+        eventSource = new EventSource(url);
+
+        eventSource.addEventListener("messages", (event) => {
+          let payload = {};
+          try {
+            payload = JSON.parse(event.data || "{}");
+          } catch (error) {
+            payload = {};
+          }
+          const messages = payload.messages || [];
+          if (messages.length) {
+            const previousLastMessageAt = state.lastMessageAt;
+            appendMessages(messages, false, previousLastMessageAt);
+          }
+          setStatus("Online", "ok");
+        });
+
+        eventSource.onopen = () => {
+          setStatus("Online", "ok");
+          if (pollTimer) {
+            clearTimeout(pollTimer);
+            pollTimer = null;
+          }
+        };
+
+        eventSource.onerror = () => {
+          setStatus("Offline", "error");
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          idlePolls = 0;
+          schedulePoll();
+        };
+
+        return true;
+      }
+
       async function bootstrap() {
         loadSidebar();
         if (!checkConfig()) {
@@ -879,9 +955,9 @@
           setStatus("Offline", "error");
         }
 
-        pollTimer = setInterval(() => {
-          loadMessages({ incremental: true }).catch(() => setStatus("Offline", "error"));
-        }, POLL_INTERVAL_MS);
+        if (!startStream()) {
+          schedulePoll();
+        }
         attemptNotificationPrompt().catch(() => null);
       }
 
