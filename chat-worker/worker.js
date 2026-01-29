@@ -4,6 +4,7 @@ const MESSAGE_PREFIX = "chat:messages:";
 const SNIPPETS_KEY = "chat:snippets";
 const PRESENCE_KEY = "chat:presence";
 const PRESENCE_TTL_MS = 120000;
+const ALLTHEPICS_UPLOAD_URL = "https://allthepics.net/api/1/upload";
 
 const DEFAULT_SNIPPETS = {
   wiki: {
@@ -166,6 +167,10 @@ export default {
 
       if (path === "/api/presence" && request.method === "POST") {
         return await handlePostPresence(request, env);
+      }
+
+      if (path === "/api/uploads" && request.method === "POST") {
+        return await handleUpload(request, env);
       }
 
       return jsonResponse({ error: "Not found" }, 404, request, env);
@@ -660,6 +665,64 @@ async function handlePostPresence(request, env) {
   }
   await env.CHAT_KV.put(PRESENCE_KEY, JSON.stringify(presence));
   return jsonResponse({ ok: true }, 200, request, env);
+}
+
+async function handleUpload(request, env) {
+  const apiKey = (env.ALLTHEPICS_API_KEY || "").trim();
+  if (!apiKey) {
+    throw new HttpError(501, "Upload not configured");
+  }
+
+  let formData;
+  try {
+    formData = await request.formData();
+  } catch (error) {
+    throw new HttpError(400, "Invalid form data");
+  }
+
+  const source = formData.get("source") || formData.get("file") || formData.get("image");
+  if (!source || typeof source === "string") {
+    throw new HttpError(400, "Missing image");
+  }
+
+  const upstream = new FormData();
+  upstream.append("source", source);
+  upstream.append("key", apiKey);
+  upstream.append("format", "json");
+
+  const uploadUrl =
+    (env.ALLTHEPICS_API_URL || ALLTHEPICS_UPLOAD_URL).trim() || ALLTHEPICS_UPLOAD_URL;
+  const response = await fetch(uploadUrl, { method: "POST", body: upstream });
+  const text = await response.text();
+  let data = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      data = {};
+    }
+  }
+
+  if (!response.ok || data?.success === false || (data?.status_code || 0) >= 400) {
+    const message =
+      data?.error?.message ||
+      data?.error ||
+      data?.message ||
+      "Upload failed";
+    throw new HttpError(502, message);
+  }
+
+  const link =
+    data?.image?.url ||
+    data?.image?.display_url ||
+    data?.image?.url_viewer ||
+    data?.data?.url ||
+    data?.data?.link;
+  if (!link) {
+    throw new HttpError(502, "Upload failed");
+  }
+
+  return jsonResponse({ ok: true, url: link }, 200, request, env);
 }
 
 async function getSnippets(env) {

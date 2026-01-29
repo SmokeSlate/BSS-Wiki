@@ -71,9 +71,7 @@
 
     <script>
       const CHAT_API_BASE = "https://bsm-api.sm0ke.org";
-      const ALLTHEPICS_API_URL = "https://allthepics.net/api/1/upload";
-      const ALLTHEPICS_API_KEY =
-        "chv_AZqC_9d87633b66a965f4e4208a7d1894a6739d72b103223f8959c44f115f645f13ff_8b3b05a3f56bc81e037c805890a5d849a2d42dfbeb639da1c3e80d828149284f";
+      const UPLOAD_API_PATH = "/api/uploads";
       const POLL_INTERVAL_MS = 4000;
       const STORAGE_KEYS = {
         userId: "supportChatUserId",
@@ -802,30 +800,12 @@
       async function uploadToAllThePics(file) {
         const formData = new FormData();
         formData.append("source", file);
-        formData.append("key", ALLTHEPICS_API_KEY);
-        formData.append("format", "json");
-        const response = await fetch(ALLTHEPICS_API_URL, {
+        const data = await fetchJson(apiUrl(UPLOAD_API_PATH), {
           method: "POST",
           body: formData,
         });
-        const text = await response.text();
-        let data = {};
-        if (text) {
-          try {
-            data = JSON.parse(text);
-          } catch (error) {
-            data = {};
-          }
-        }
-        if (!response.ok || data?.success === false || (data?.status_code || 0) >= 400) {
-          const message =
-            data?.error?.message ||
-            data?.error ||
-            data?.message ||
-            "Upload failed";
-          throw new Error(message);
-        }
         const link =
+          data?.url ||
           data?.image?.url ||
           data?.image?.display_url ||
           data?.image?.url_viewer ||
