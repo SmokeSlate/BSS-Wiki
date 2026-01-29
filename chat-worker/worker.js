@@ -542,28 +542,36 @@ function corsHeaders(request, env) {
     .map((item) => normalizeOriginPattern(item))
     .filter(Boolean);
 
+  const origin = request.headers.get("Origin") || "";
+  const hasWildcard = configured.includes("*");
   let allowOrigin = "*";
-  if (configured.length) {
-    const origin = request.headers.get("Origin") || "";
+  if (configured.length && !hasWildcard) {
     const matched = origin
       ? configured.find((pattern) => originMatches(pattern, origin))
       : null;
     if (matched) {
       allowOrigin = origin;
-    } else if (configured[0] !== "*") {
+    } else {
       allowOrigin = configured[0];
     }
   }
 
+  const requestedHeaders = request.headers.get("Access-Control-Request-Headers");
   const headers = {
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, X-Client-Token",
+    "Access-Control-Allow-Headers":
+      requestedHeaders || "Content-Type, X-Admin-Key, X-Client-Token",
     "Access-Control-Max-Age": "86400",
   };
 
-  if (configured.length) {
+  if (configured.length && !hasWildcard) {
     headers.Vary = "Origin";
+  }
+  if (requestedHeaders) {
+    headers.Vary = headers.Vary
+      ? `${headers.Vary}, Access-Control-Request-Headers`
+      : "Access-Control-Request-Headers";
   }
 
   return headers;
