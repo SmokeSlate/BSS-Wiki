@@ -3,12 +3,12 @@ main = "worker.js"
 compatibility_date = "2024-12-01"
 
 
-# Add your KV namespace IDs before deploying.
-[[kv_namespaces]]
-binding = "CHAT_KV"
-id = "fa0cf78eda63466e9f8f61ac267b9541"
-preview_id = "0face79ffbef480f9ea3c26e1acef936"
+# Add your D1 database IDs before deploying.
+[[d1_databases]]
+binding = "DB"
+database_name = "bss_support_chat"
+database_id = "5918dbcd-65eb-4352-b196-b167f5571a86"
+preview_database_id = "0ad6de03-5ba0-4132-bb62-f34718220f29"
 
 [vars]
 ALLOWED_ORIGINS = "*"
-

@@ -1,8 +1,4 @@
 const MAX_MESSAGES = 200;
-const CONVERSATIONS_KEY = "chat:conversations";
-const MESSAGE_PREFIX = "chat:messages:";
-const SNIPPETS_KEY = "chat:snippets";
-const PRESENCE_KEY = "chat:presence";
 const PRESENCE_TTL_MS = 120000;
 const ALLTHEPICS_UPLOAD_URL = "https://allthepics.net/api/1/upload";
 
@@ -126,10 +122,7 @@ export default {
 
       if (path === "/api/conversations" && request.method === "GET") {
         requireAdmin(request, env);
-        const index = await readIndex(env);
-        const conversations = Object.values(index)
-          .map(({ token, ...rest }) => rest)
-          .sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
+        const conversations = await listConversations(env);
         return jsonResponse({ conversations }, 200, request, env);
       }
 
@@ -176,13 +169,22 @@ export default {
       return jsonResponse({ error: "Not found" }, 404, request, env);
     } catch (error) {
       const status = error instanceof HttpError ? error.status : 500;
-      const message = error instanceof HttpError ? error.message : "Server error";
+      const message =
+        error instanceof HttpError
+          ? error.message
+          : error && error.message
+            ? error.message
+            : "Server error";
+      if (!(error instanceof HttpError)) {
+        console.error("Unhandled error", error);
+      }
       return jsonResponse({ error: message }, status, request, env);
     }
   },
 };
 
 async function handleGetMessages(request, env) {
+  ensureDb(env);
   const url = new URL(request.url);
   const conversationId = (url.searchParams.get("conversationId") || "").trim();
 
@@ -202,16 +204,28 @@ async function handleGetMessages(request, env) {
     }
   }
 
-  const messages = await readMessages(env, conversationId);
   const afterParam = url.searchParams.get("after");
   let after = afterParam ? Number(afterParam) : 0;
-  if (Number.isNaN(after)) {
+  if (Number.isNaN(after) || after < 0) {
     after = 0;
   }
-  let filtered = after ? messages.filter((msg) => msg.createdAt > after) : messages;
+
+  const limitParam = url.searchParams.get("limit");
+  let limit = limitParam ? Number(limitParam) : MAX_MESSAGES;
+  if (Number.isNaN(limit) || limit <= 0) {
+    limit = MAX_MESSAGES;
+  }
+  limit = Math.min(limit, MAX_MESSAGES);
+
+  const messages = await readMessages(env, {
+    conversationId,
+    after,
+    limit,
+    includeDeleted: isAdmin,
+  });
+  let filtered = messages;
   if (!isAdmin) {
     filtered = filtered
-      .filter((msg) => !msg.deletedAt)
       .map((msg) => {
         const { originalText, deletedAt, deletedBy, ...rest } = msg;
         return rest;
@@ -222,7 +236,7 @@ async function handleGetMessages(request, env) {
 }
 
 async function handlePostMessage(request, env, ctx) {
-  ensureChatKv(env);
+  ensureDb(env);
   const payload = await readJson(request);
   const conversationId = (payload.conversationId || "").trim();
   const senderId = (payload.senderId || "").trim();
@@ -251,39 +265,17 @@ async function handlePostMessage(request, env, ctx) {
   }
 
   const now = Date.now();
-  const index = await readIndex(env);
-  const existing = index[conversationId];
+  const existing = await readConversation(env, conversationId);
 
-  let clientToken = payload.clientToken || request.headers.get("X-Client-Token") || "";
-
-  if (!existing) {
-    if (!clientToken) {
-      clientToken = generateToken();
+  const providedToken = payload.clientToken || request.headers.get("X-Client-Token") || "";
+  if (existing && role !== "support") {
+    if (!providedToken || providedToken !== existing.token) {
+      throw new HttpError(403, "Unauthorized");
     }
-    index[conversationId] = {
-      id: conversationId,
-      name: senderName || `Guest ${conversationId}`,
-      createdAt: now,
-      lastMessageAt: now,
-      lastMessagePreview: previewText(text),
-      lastMessageRole: role,
-      lastMessageSenderName: senderName,
-      token: clientToken,
-    };
-  } else {
-    if (role !== "support") {
-      if (!clientToken || clientToken !== existing.token) {
-        throw new HttpError(403, "Unauthorized");
-      }
-    }
-    index[conversationId] = {
-      ...existing,
-      name: existing.name || senderName,
-      lastMessageAt: now,
-      lastMessagePreview: previewText(text),
-      lastMessageRole: role,
-      lastMessageSenderName: senderName,
-    };
+  }
+  let clientToken = existing?.token || providedToken;
+  if (!clientToken) {
+    clientToken = generateToken();
   }
 
   const message = {
@@ -296,19 +288,63 @@ async function handlePostMessage(request, env, ctx) {
     createdAt: now,
   };
 
-  const messages = await readMessages(env, conversationId);
-  messages.push(message);
-  const trimmed = messages.length > MAX_MESSAGES ? messages.slice(-MAX_MESSAGES) : messages;
+  const conversationName = existing?.name || senderName || `Guest ${conversationId}`;
+  const insertMessage = env.DB.prepare(
+    "INSERT INTO messages (id, conversation_id, sender_id, sender_name, text, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).bind(
+    message.id,
+    conversationId,
+    senderId,
+    senderName,
+    text,
+    role,
+    now
+  );
+  const upsertConversation = env.DB.prepare(
+    `INSERT INTO conversations (
+      id,
+      name,
+      created_at,
+      last_message_at,
+      last_message_preview,
+      last_message_role,
+      last_message_sender_name,
+      token
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      name = COALESCE(NULLIF(conversations.name, ''), excluded.name),
+      last_message_at = excluded.last_message_at,
+      last_message_preview = excluded.last_message_preview,
+      last_message_role = excluded.last_message_role,
+      last_message_sender_name = excluded.last_message_sender_name,
+      token = COALESCE(conversations.token, excluded.token)`
+  ).bind(
+    conversationId,
+    conversationName,
+    now,
+    now,
+    previewText(text),
+    role,
+    senderName,
+    clientToken
+  );
+  const pruneMessages = env.DB.prepare(
+    `DELETE FROM messages
+      WHERE conversation_id = ?
+        AND id NOT IN (
+          SELECT id FROM messages
+            WHERE conversation_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        )`
+  ).bind(conversationId, conversationId, MAX_MESSAGES);
 
-  await Promise.all([
-    env.CHAT_KV.put(MESSAGE_PREFIX + conversationId, JSON.stringify(trimmed)),
-    env.CHAT_KV.put(CONVERSATIONS_KEY, JSON.stringify(index)),
-  ]);
+  await env.DB.batch([insertMessage, upsertConversation, pruneMessages]);
 
   notifyWebhook(message, payload, env, ctx);
 
   return jsonResponse(
-    { ok: true, message, clientToken: index[conversationId].token },
+    { ok: true, message, clientToken },
     200,
     request,
     env
@@ -316,6 +352,7 @@ async function handlePostMessage(request, env, ctx) {
 }
 
 async function handlePatchMessage(request, env) {
+  ensureDb(env);
   const payload = await readJson(request);
   const url = new URL(request.url);
   const conversationId = (payload.conversationId || url.searchParams.get("conversationId") || "").trim();
@@ -348,13 +385,10 @@ async function handlePatchMessage(request, env) {
     }
   }
 
-  const messages = await readMessages(env, conversationId);
-  const index = messages.findIndex((item) => item.id === messageId);
-  if (index === -1) {
+  const message = await readMessage(env, conversationId, messageId);
+  if (!message) {
     throw new HttpError(404, "Message not found");
   }
-
-  const message = messages[index];
   if (!isAdmin) {
     if (!senderId || senderId !== message.senderId || message.role === "support") {
       throw new HttpError(403, "Unauthorized");
@@ -365,39 +399,28 @@ async function handlePatchMessage(request, env) {
   }
 
   const now = Date.now();
+  const editedBy = isAdmin ? "admin" : senderId;
+  const originalText = message.originalText || (message.text !== text ? message.text : null);
+  await env.DB.prepare(
+    "UPDATE messages SET text = ?, edited_at = ?, edited_by = ?, original_text = COALESCE(original_text, ?) WHERE id = ? AND conversation_id = ?"
+  ).bind(text, now, editedBy, originalText, messageId, conversationId).run();
+
   const updated = {
     ...message,
     text,
     editedAt: now,
-    editedBy: isAdmin ? "admin" : senderId,
+    editedBy,
   };
   if (!message.originalText && message.text !== text) {
     updated.originalText = message.text;
   }
-  messages[index] = updated;
-
-  const conversationIndex = await readIndex(env);
-  const existing = conversationIndex[conversationId];
-  if (existing && messages.length) {
-    const last = [...messages].reverse().find((item) => !item.deletedAt) || messages[messages.length - 1];
-    conversationIndex[conversationId] = {
-      ...existing,
-      lastMessageAt: last.createdAt || existing.lastMessageAt || now,
-      lastMessagePreview: previewText(last.text || ""),
-      lastMessageRole: last.role || existing.lastMessageRole || "user",
-      lastMessageSenderName: last.senderName || existing.lastMessageSenderName || "",
-    };
-  }
-
-  await Promise.all([
-    env.CHAT_KV.put(MESSAGE_PREFIX + conversationId, JSON.stringify(messages)),
-    env.CHAT_KV.put(CONVERSATIONS_KEY, JSON.stringify(conversationIndex)),
-  ]);
+  await updateConversationFromLatest(env, conversationId);
 
   return jsonResponse({ ok: true, message: updated }, 200, request, env);
 }
 
 async function handleDeleteMessage(request, env) {
+  ensureDb(env);
   const payload = await readJson(request);
   const url = new URL(request.url);
   const conversationId = (payload.conversationId || url.searchParams.get("conversationId") || "").trim();
@@ -426,8 +449,7 @@ async function handleDeleteMessage(request, env) {
     }
   }
 
-  const messages = await readMessages(env, conversationId);
-  const target = messages.find((item) => item.id === messageId);
+  const target = await readMessage(env, conversationId, messageId);
   if (!target) {
     throw new HttpError(404, "Message not found");
   }
@@ -444,42 +466,21 @@ async function handleDeleteMessage(request, env) {
   }
 
   const now = Date.now();
+  const deletedBy = isAdmin ? "admin" : senderId;
+  const originalText = target.originalText || target.text;
+  await env.DB.prepare(
+    "UPDATE messages SET deleted_at = ?, deleted_by = ?, original_text = COALESCE(original_text, ?) WHERE id = ? AND conversation_id = ?"
+  ).bind(now, deletedBy, originalText, messageId, conversationId).run();
+
   const updated = {
     ...target,
     deletedAt: now,
-    deletedBy: isAdmin ? "admin" : senderId,
+    deletedBy,
   };
   if (!updated.originalText) {
     updated.originalText = target.originalText || target.text;
   }
-  const filtered = messages.map((item) => (item.id === messageId ? updated : item));
-  const conversationIndex = await readIndex(env);
-  const existing = conversationIndex[conversationId];
-  if (existing) {
-    const lastVisible = [...filtered].reverse().find((item) => !item.deletedAt);
-    if (lastVisible) {
-      conversationIndex[conversationId] = {
-        ...existing,
-        lastMessageAt: lastVisible.createdAt || 0,
-        lastMessagePreview: previewText(lastVisible.text || ""),
-        lastMessageRole: lastVisible.role || existing.lastMessageRole || "user",
-        lastMessageSenderName: lastVisible.senderName || existing.lastMessageSenderName || "",
-      };
-    } else {
-      conversationIndex[conversationId] = {
-        ...existing,
-        lastMessageAt: 0,
-        lastMessagePreview: "",
-        lastMessageRole: "",
-        lastMessageSenderName: "",
-      };
-    }
-  }
-
-  await Promise.all([
-    env.CHAT_KV.put(MESSAGE_PREFIX + conversationId, JSON.stringify(filtered)),
-    env.CHAT_KV.put(CONVERSATIONS_KEY, JSON.stringify(conversationIndex)),
-  ]);
+  await updateConversationFromLatest(env, conversationId);
 
   const responseBody = isAdmin ? { ok: true, message: updated } : { ok: true };
   return jsonResponse(responseBody, 200, request, env);
@@ -515,25 +516,171 @@ async function readJson(request) {
   }
 }
 
-async function readIndex(env) {
-  const data = await env.CHAT_KV.get(CONVERSATIONS_KEY, { type: "json" });
-  if (!data || typeof data !== "object") {
-    return {};
-  }
-  return data;
+async function listConversations(env) {
+  ensureDb(env);
+  const query = `SELECT
+      id,
+      name,
+      created_at as createdAt,
+      last_message_at as lastMessageAt,
+      last_message_preview as lastMessagePreview,
+      last_message_role as lastMessageRole,
+      last_message_sender_name as lastMessageSenderName
+    FROM conversations
+    ORDER BY last_message_at DESC`;
+  const result = await env.DB.prepare(query).all();
+  return (result.results || []).map((row) => ({
+    id: row.id,
+    name: row.name || "",
+    createdAt: row.createdAt || 0,
+    lastMessageAt: row.lastMessageAt || 0,
+    lastMessagePreview: row.lastMessagePreview || "",
+    lastMessageRole: row.lastMessageRole || "",
+    lastMessageSenderName: row.lastMessageSenderName || "",
+  }));
 }
 
 async function readConversation(env, conversationId) {
-  const index = await readIndex(env);
-  return index[conversationId] || null;
+  ensureDb(env);
+  const row = await env.DB.prepare(
+    `SELECT
+      id,
+      name,
+      created_at as createdAt,
+      last_message_at as lastMessageAt,
+      last_message_preview as lastMessagePreview,
+      last_message_role as lastMessageRole,
+      last_message_sender_name as lastMessageSenderName,
+      token
+    FROM conversations
+    WHERE id = ?`
+  ).bind(conversationId).first();
+  if (!row) {
+    return null;
+  }
+  return {
+    id: row.id,
+    name: row.name || "",
+    createdAt: row.createdAt || 0,
+    lastMessageAt: row.lastMessageAt || 0,
+    lastMessagePreview: row.lastMessagePreview || "",
+    lastMessageRole: row.lastMessageRole || "",
+    lastMessageSenderName: row.lastMessageSenderName || "",
+    token: row.token || "",
+  };
 }
 
-async function readMessages(env, conversationId) {
-  const data = await env.CHAT_KV.get(MESSAGE_PREFIX + conversationId, { type: "json" });
-  if (!Array.isArray(data)) {
-    return [];
+async function readMessage(env, conversationId, messageId) {
+  ensureDb(env);
+  const row = await env.DB.prepare(
+    `SELECT
+      id,
+      conversation_id as conversationId,
+      sender_id as senderId,
+      sender_name as senderName,
+      text,
+      role,
+      created_at as createdAt,
+      edited_at as editedAt,
+      edited_by as editedBy,
+      deleted_at as deletedAt,
+      deleted_by as deletedBy,
+      original_text as originalText
+    FROM messages
+    WHERE conversation_id = ? AND id = ?`
+  ).bind(conversationId, messageId).first();
+  return row ? normalizeMessageRow(row) : null;
+}
+
+async function readMessages(env, { conversationId, after = 0, limit = MAX_MESSAGES, includeDeleted }) {
+  ensureDb(env);
+  const params = [conversationId];
+  let where = "conversation_id = ?";
+  if (!includeDeleted) {
+    where += " AND deleted_at IS NULL";
   }
-  return data;
+  if (after) {
+    where += " AND created_at > ?";
+    params.push(after);
+  }
+  const order = after ? "ASC" : "DESC";
+  const query = `SELECT
+      id,
+      conversation_id as conversationId,
+      sender_id as senderId,
+      sender_name as senderName,
+      text,
+      role,
+      created_at as createdAt,
+      edited_at as editedAt,
+      edited_by as editedBy,
+      deleted_at as deletedAt,
+      deleted_by as deletedBy,
+      original_text as originalText
+    FROM messages
+    WHERE ${where}
+    ORDER BY created_at ${order}
+    LIMIT ?`;
+  params.push(limit);
+  const result = await env.DB.prepare(query).bind(...params).all();
+  const rows = (result.results || []).map((row) => normalizeMessageRow(row));
+  if (!after) {
+    rows.reverse();
+  }
+  return rows;
+}
+
+async function getLastVisibleMessage(env, conversationId) {
+  ensureDb(env);
+  const row = await env.DB.prepare(
+    `SELECT
+      id,
+      conversation_id as conversationId,
+      sender_id as senderId,
+      sender_name as senderName,
+      text,
+      role,
+      created_at as createdAt,
+      edited_at as editedAt,
+      edited_by as editedBy,
+      deleted_at as deletedAt,
+      deleted_by as deletedBy,
+      original_text as originalText
+    FROM messages
+    WHERE conversation_id = ? AND deleted_at IS NULL
+    ORDER BY created_at DESC
+    LIMIT 1`
+  ).bind(conversationId).first();
+  return row ? normalizeMessageRow(row) : null;
+}
+
+async function updateConversationFromLatest(env, conversationId) {
+  const lastVisible = await getLastVisibleMessage(env, conversationId);
+  if (lastVisible) {
+    await env.DB.prepare(
+      `UPDATE conversations
+        SET last_message_at = ?,
+            last_message_preview = ?,
+            last_message_role = ?,
+            last_message_sender_name = ?
+        WHERE id = ?`
+    ).bind(
+      lastVisible.createdAt || 0,
+      previewText(lastVisible.text || ""),
+      lastVisible.role || "user",
+      lastVisible.senderName || "",
+      conversationId
+    ).run();
+    return;
+  }
+  await env.DB.prepare(
+    `UPDATE conversations
+      SET last_message_at = 0,
+          last_message_preview = "",
+          last_message_role = "",
+          last_message_sender_name = ""
+      WHERE id = ?`
+  ).bind(conversationId).run();
 }
 
 function previewText(text) {
@@ -548,10 +695,27 @@ function generateToken() {
   return crypto.randomUUID().replace(/-/g, "");
 }
 
-function ensureChatKv(env) {
-  if (!env?.CHAT_KV || typeof env.CHAT_KV.put !== "function") {
-    throw new HttpError(500, "Storage unavailable");
+function ensureDb(env) {
+  if (!env?.DB || typeof env.DB.prepare !== "function") {
+    throw new HttpError(500, "Database unavailable");
   }
+}
+
+function normalizeMessageRow(row) {
+  return {
+    id: row.id,
+    conversationId: row.conversationId,
+    senderId: row.senderId,
+    senderName: row.senderName || "",
+    text: row.text || "",
+    role: row.role || "user",
+    createdAt: row.createdAt || 0,
+    editedAt: row.editedAt || null,
+    editedBy: row.editedBy || "",
+    deletedAt: row.deletedAt || null,
+    deletedBy: row.deletedBy || "",
+    originalText: row.originalText || "",
+  };
 }
 
 function isAdminRequest(request, env) {
@@ -622,12 +786,14 @@ function jsonResponse(data, status, request, env) {
 
 async function handleGetSnippets(request, env) {
   requireAdmin(request, env);
+  ensureDb(env);
   const snippets = await getSnippets(env);
   return jsonResponse({ snippets }, 200, request, env);
 }
 
 async function handlePostSnippet(request, env) {
   requireAdmin(request, env);
+  ensureDb(env);
   const payload = await readJson(request);
   const key = normalizeSnippetKey(payload.key);
   const content = typeof payload.content === "string" ? payload.content : "";
@@ -635,32 +801,41 @@ async function handlePostSnippet(request, env) {
   if (!key || !content) {
     throw new HttpError(400, "Missing fields");
   }
+  await env.DB.prepare(
+    "INSERT INTO snippets (key, content, dynamic) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET content = excluded.content, dynamic = excluded.dynamic"
+  ).bind(key, content, dynamic ? 1 : 0).run();
   const snippets = await getSnippets(env);
-  snippets[key] = { content, dynamic };
-  await env.CHAT_KV.put(SNIPPETS_KEY, JSON.stringify(snippets));
   return jsonResponse({ ok: true, snippets }, 200, request, env);
 }
 
 async function handleDeleteSnippet(request, env) {
   requireAdmin(request, env);
+  ensureDb(env);
   const payload = await readJson(request);
   const key = normalizeSnippetKey(payload.key);
   if (!key) {
     throw new HttpError(400, "Missing fields");
   }
+  await env.DB.prepare("DELETE FROM snippets WHERE key = ?").bind(key).run();
   const snippets = await getSnippets(env);
-  delete snippets[key];
-  await env.CHAT_KV.put(SNIPPETS_KEY, JSON.stringify(snippets));
   return jsonResponse({ ok: true, snippets }, 200, request, env);
 }
 
 async function handleGetPresence(request, env) {
+  ensureDb(env);
   const now = Date.now();
-  const { entries, cleaned } = await readPresence(env, now);
+  const cutoff = now - PRESENCE_TTL_MS;
+  await env.DB.prepare("DELETE FROM presence WHERE last_seen < ?").bind(cutoff).run();
+  const result = await env.DB.prepare(
+    "SELECT id, name, status, last_seen as lastSeen FROM presence WHERE last_seen >= ?"
+  ).bind(cutoff).all();
+  const entries = (result.results || []).map((row) => ({
+    id: row.id,
+    name: row.name || "Support",
+    status: row.status || "online",
+    lastSeen: row.lastSeen || 0,
+  }));
   const active = entries.filter((item) => item.status === "online");
-  if (cleaned) {
-    await env.CHAT_KV.put(PRESENCE_KEY, JSON.stringify(cleaned));
-  }
   if (!isAdminRequest(request, env)) {
     return jsonResponse({ online: active.length > 0, count: active.length }, 200, request, env);
   }
@@ -674,6 +849,7 @@ async function handleGetPresence(request, env) {
 
 async function handlePostPresence(request, env) {
   requireAdmin(request, env);
+  ensureDb(env);
   const payload = await readJson(request);
   const adminId = (payload.adminId || "").trim();
   const name = (payload.name || "Support").trim() || "Support";
@@ -682,18 +858,13 @@ async function handlePostPresence(request, env) {
     throw new HttpError(400, "Missing fields");
   }
   const now = Date.now();
-  const presence = await readPresenceMap(env, now);
   if (status === "offline") {
-    delete presence[adminId];
+    await env.DB.prepare("DELETE FROM presence WHERE id = ?").bind(adminId).run();
   } else {
-    presence[adminId] = {
-      id: adminId,
-      name,
-      status,
-      lastSeen: now,
-    };
+    await env.DB.prepare(
+      "INSERT INTO presence (id, name, status, last_seen) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, status = excluded.status, last_seen = excluded.last_seen"
+    ).bind(adminId, name, status, now).run();
   }
-  await env.CHAT_KV.put(PRESENCE_KEY, JSON.stringify(presence));
   return jsonResponse({ ok: true }, 200, request, env);
 }
 
@@ -756,12 +927,32 @@ async function handleUpload(request, env) {
 }
 
 async function getSnippets(env) {
-  const data = await env.CHAT_KV.get(SNIPPETS_KEY, { type: "json" });
-  if (!data || typeof data !== "object") {
-    await env.CHAT_KV.put(SNIPPETS_KEY, JSON.stringify(DEFAULT_SNIPPETS));
+  ensureDb(env);
+  const result = await env.DB.prepare("SELECT key, content, dynamic FROM snippets").all();
+  const rows = result.results || [];
+  if (!rows.length) {
+    await seedDefaultSnippets(env);
     return { ...DEFAULT_SNIPPETS };
   }
-  return data;
+  const snippets = {};
+  rows.forEach((row) => {
+    snippets[row.key] = {
+      content: row.content || "",
+      dynamic: Boolean(row.dynamic),
+    };
+  });
+  return snippets;
+}
+
+async function seedDefaultSnippets(env) {
+  const statements = Object.entries(DEFAULT_SNIPPETS).map(([key, snippet]) =>
+    env.DB.prepare(
+      "INSERT OR IGNORE INTO snippets (key, content, dynamic) VALUES (?, ?, ?)"
+    ).bind(key, snippet.content, snippet.dynamic ? 1 : 0)
+  );
+  if (statements.length) {
+    await env.DB.batch(statements);
+  }
 }
 
 function normalizeSnippetKey(value) {
@@ -798,28 +989,6 @@ function applySnippet(snippet, args, meta) {
     result = result.replace(/\{ping\}/gi, pingValue);
   }
   return result;
-}
-
-async function readPresence(env, now) {
-  const presence = await readPresenceMap(env, now);
-  const entries = Object.values(presence);
-  return { entries, cleaned: presence };
-}
-
-async function readPresenceMap(env, now) {
-  const data = await env.CHAT_KV.get(PRESENCE_KEY, { type: "json" });
-  const presence = data && typeof data === "object" ? data : {};
-  const cleaned = {};
-  Object.values(presence).forEach((entry) => {
-    if (!entry || !entry.id || !entry.lastSeen) {
-      return;
-    }
-    if (now - entry.lastSeen > PRESENCE_TTL_MS) {
-      return;
-    }
-    cleaned[entry.id] = entry;
-  });
-  return cleaned;
 }
 
 function notifyWebhook(message, payload, env, ctx) {

@@ -626,13 +626,21 @@
         }
       }
 
-      async function loadMessages() {
+      async function loadMessages({ incremental = false } = {}) {
         const params = new URLSearchParams({ conversationId: state.conversationId });
         if (state.clientToken) {
           params.set("token", state.clientToken);
         }
+        if (incremental && state.lastMessageAt) {
+          params.set("after", String(state.lastMessageAt));
+        }
 
         const data = await fetchJson(apiUrl(`/api/messages?${params.toString()}`));
+        if (incremental) {
+          const previousLastMessageAt = state.lastMessageAt;
+          appendMessages(data.messages || [], false, previousLastMessageAt);
+          return;
+        }
         renderMessages(data.messages || [], false);
       }
 
@@ -872,7 +880,7 @@
         }
 
         pollTimer = setInterval(() => {
-          loadMessages().catch(() => setStatus("Offline", "error"));
+          loadMessages({ incremental: true }).catch(() => setStatus("Offline", "error"));
         }, POLL_INTERVAL_MS);
         attemptNotificationPrompt().catch(() => null);
       }
