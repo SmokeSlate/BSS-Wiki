@@ -791,7 +791,10 @@ function isAdminRequest(request, env) {
     return true;
   }
   const headerKey = request.headers.get("X-Admin-Key") || "";
-  return headerKey && headerKey === env.ADMIN_KEY;
+  const url = new URL(request.url);
+  const queryKey = url.searchParams.get("adminKey") || "";
+  const provided = headerKey || queryKey;
+  return provided && provided === env.ADMIN_KEY;
 }
 
 function requireAdmin(request, env) {
