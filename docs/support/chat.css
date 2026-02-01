@@ -37,6 +37,22 @@ a {
   height: 100dvh;
 }
 
+.sidebar-scrim {
+  display: none;
+}
+
+.sidebar-toggle {
+  display: none;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
 .sidebar {
   width: 260px;
   background: var(--sidebar-bg);
@@ -490,6 +506,17 @@ a {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative;
+}
+
+.tool-btn.inline {
+  position: absolute;
+  left: 8px;
+  bottom: 32px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  z-index: 1;
 }
 
 textarea {
@@ -503,7 +530,7 @@ textarea {
   border: 1px solid #2b323a;
   background: #242a30;
   color: var(--text);
-  padding: 10px 12px;
+  padding: 10px 12px 10px 52px;
   font-family: inherit;
   font-size: 0.98rem;
 }
@@ -797,7 +824,15 @@ textarea:focus {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid #1f272e;
-    max-height: 220px;
+    max-height: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    width: min(320px, 86vw);
+    transform: translateX(-110%);
+    transition: transform 0.2s ease;
+    z-index: 40;
   }
 
   .content {
@@ -806,6 +841,37 @@ textarea:focus {
 
   .admin-page .content {
     padding: 12px;
+  }
+
+  body.sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 30;
+  }
+
+  body.sidebar-open .sidebar-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .chat-status,
+  .chat-header {
+    gap: 10px;
   }
 }
 
@@ -852,10 +918,6 @@ textarea:focus {
   .composer {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .composer-tools {
-    width: 100%;
   }
 
   .tool-btn,

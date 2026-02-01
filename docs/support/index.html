@@ -31,10 +31,14 @@
       <aside class="sidebar">
         <div class="sidebar-nav" id="sidebar-content">Loading navigation...</div>
       </aside>
+      <div class="sidebar-scrim" id="sidebar-scrim" aria-hidden="true"></div>
 
       <main class="content">
         <section class="chat-shell">
           <div class="chat-status">
+            <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Toggle navigation">
+              ☰
+            </button>
             <div class="status-block">
               <span class="status-pill status-warn" id="status-pill">Connecting</span>
               <span class="status-pill status-error presence-pill" id="presence-pill">
@@ -50,10 +54,8 @@
           </div>
 
           <footer class="chat-input">
-            <div class="composer-tools">
-              <button class="tool-btn" id="tool-image" type="button" title="Upload image">+</button>
-            </div>
             <div class="input-wrap">
+              <button class="tool-btn inline" id="tool-image" type="button" title="Upload image">+</button>
               <textarea
                 id="message-input"
                 rows="2"
@@ -89,6 +91,8 @@
         chatId: document.getElementById("chat-id"),
         empty: document.getElementById("empty-state"),
         sidebar: document.getElementById("sidebar-content"),
+        sidebarToggle: document.getElementById("sidebar-toggle"),
+        sidebarScrim: document.getElementById("sidebar-scrim"),
         toolImage: document.getElementById("tool-image"),
         hint: document.getElementById("input-hint"),
         imgurInput: document.getElementById("imgur-input"),
@@ -793,6 +797,18 @@
         });
       }
 
+      function openSidebar() {
+        document.body.classList.add("sidebar-open");
+      }
+
+      function closeSidebar() {
+        document.body.classList.remove("sidebar-open");
+      }
+
+      function toggleSidebar() {
+        document.body.classList.toggle("sidebar-open");
+      }
+
       async function loadSidebar() {
         try {
           const response = await fetch("/_sidebar.md", { cache: "no-store" });
@@ -983,6 +999,19 @@
       });
       ui.toolImage.addEventListener("click", () => ui.imgurInput.click());
       ui.imgurInput.addEventListener("change", handleImageUpload);
+      if (ui.sidebarToggle) {
+        ui.sidebarToggle.addEventListener("click", toggleSidebar);
+      }
+      if (ui.sidebarScrim) {
+        ui.sidebarScrim.addEventListener("click", closeSidebar);
+      }
+      if (ui.sidebar) {
+        ui.sidebar.addEventListener("click", (event) => {
+          if (event.target && event.target.closest("a")) {
+            closeSidebar();
+          }
+        });
+      }
 
       autoResizeTextarea();
       bootstrap();
