@@ -9,7 +9,7 @@ Q: Go to settings isn't working.
 A: Use [Quest Settings Opener](<https://github.com/SmokeSlate/QuestDevSettings/releases/download/2.0/OpenSettings.apk>). [Steps on how here.](<https://wiki.sm0ke.org/#/quest?id=_5-using-dev-tools-opener-to-enable-developer-mode>)  
 
 Q: Does it work with multiple accounts?  
-A: There is *limited to **no*** support with multiple accounts. There has been success on headset admin accounts so try that.  
+A: There is little to no support with multiple accounts. There has been success on headset admin accounts so try that.  
 
 Q: **I can't find `VR Android File Manager`!**  
 A: Download `Mobile VR Station` and go to your library, click on the `...` and then `Settings` then `Release Channels` then select the one that is not selected (NOT `live`) and then click `Confirm`. Go back to your library and click the `...` again and then click `Update`. Once updated open the app navigate to `All Folders > Android > data` then click on `Scoped Actions` then `Request Permission`. Then install your apks.  

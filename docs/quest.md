@@ -49,7 +49,7 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
 2. Open **Dev Tools Opener** and choose **Open Settings**. Then click `Open` on the window that pops up. 
 3. Go to **About Headset**. Scroll to the bottom and tap **Build Number** repeatedly until you see the message **“You are now a developer”**.
 4. Reopen the Dev Tools Opener window and select **Open Developer Settings**.
-5. Scroll to **Wireless Debugging and toggle it **On**. Then click on the `Wireless Debugging` text.
+5. Scroll to **Wireless Debugging** and toggle it **On**. Then click on the `Wireless Debugging` text.
 6. Tap `Pair with pairing code` and put the code the code shown into the MBF Launcher window.
 7. Once pairing completes, close the pairing dialog and close Dev Tools Opener.
 
@@ -97,7 +97,7 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
  
      * *If you have ever used QuestPatcher before for any purpose, go to tools and click Quick Fix.*  
  
- 2. **Patch Beat Saber (or repatch in the tools tab if you have already) **  
+ 2. **Patch Beat Saber (or repatch in the tools tab if you have already)**  
  
      * *Make sure Scotland2 is selected as the ModLoader.*  
  
