@@ -727,7 +727,7 @@
           const introSent = localStorage.getItem(STORAGE_KEYS.intro) === "true";
           const text = introSent
             ? `Chat session resumed. User ID: ${state.userId}`
-            : "Hello, I need assistance. I have tried turning off/on and waiting and read faq at https://wiki.sm0ke.org/#/faq";
+            : "Hello, I need assistance. I have tried turning off/on and waiting and I read the faq at https://wiki.sm0ke.org/#/faq";
           const data = await postMessage(text, "system");
           localStorage.setItem(STORAGE_KEYS.intro, "true");
           if (data && data.message) {

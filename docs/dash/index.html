@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Beat Saber Wiki Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="/assets/logo.png" />
+    <meta name="description" content="Quick dashboard for Beat Saber modding setup, APK downloads, support, and FAQ." />
+  </head>
+  <body class="bg-gray-900 text-white min-h-screen">
+    <main class="max-w-6xl mx-auto px-4 py-8">
+      <header class="mb-6">
+        <a href="/" class="inline-flex items-center gap-3 mb-4">
+          <img src="/assets/logo.png" alt="Beat Saber Wiki" class="h-12 w-12 rounded-lg" />
+          <span class="text-sm text-gray-300">Back to Wiki Home</span>
+        </a>
+        <h1 class="text-3xl font-bold">Setup Dashboard</h1>
+        <p class="text-gray-300 mt-2">Fast access to required APK downloads, support, and troubleshooting.</p>
+        <p id="loaded-at" class="text-xs text-gray-400 mt-2">Loading...</p>
+      </header>
+
+      <section class="grid gap-4 md:grid-cols-2" id="cards"></section>
+
+      <section class="bg-gray-800 rounded-xl p-6 mt-6">
+        <h2 class="text-xl font-semibold mb-3">Before You Contact Support</h2>
+        <p class="text-sm text-gray-300 mb-4">
+          Include headset model, Beat Saber version, and screenshots of any error.
+        </p>
+        <button
+          id="copy-checklist"
+          type="button"
+          class="inline-flex text-white bg-indigo-500 border-0 py-2 px-4 focus:outline-none hover:bg-indigo-400 text-sm rounded-full"
+        >
+          Copy Support Checklist
+        </button>
+      </section>
+    </main>
+
+    <script>
+      (function renderDash() {
+        var cardsEl = document.getElementById("cards");
+        var loadedAt = document.getElementById("loaded-at");
+        if (!cardsEl || !loadedAt) return;
+
+        var cards = [
+          {
+            title: "Download Required APKs",
+            body: "Use the Quest browser, open bsmd.sm0ke.org, and tap Download All.",
+            actions: [
+              { label: "Open APK Download Site", href: "https://bsmd.sm0ke.org/" },
+              { label: "MBF Launcher Guide", href: "/#/quest?id=MBF-Launcher" }
+            ]
+          },
+          {
+            title: "OpenSettings.apk",
+            body: "Direct download for Dev Tools Opener when reinstalling or troubleshooting.",
+            actions: [
+              { label: "Download OpenSettings.apk", href: "https://github.com/SmokeSlate/QuestDevSettings/releases/download/2.0/OpenSettings.apk" },
+              { label: "Pairing Steps", href: "/#/quest?id=_5-using-dev-tools-opener-to-enable-developer-mode" }
+            ]
+          },
+          {
+            title: "Contact Support",
+            body: "Open live support chat or use Discord for setup and modding issues.",
+            actions: [
+              { label: "Open Support Chat", href: "/support" },
+              { label: "Join Discord", href: "https://d.sm0ke.org" }
+            ]
+          },
+          {
+            title: "FAQ and Troubleshooting",
+            body: "Common fixes for MVRS scoped storage, account issues, and setup steps.",
+            actions: [
+              { label: "Open FAQ", href: "/#/faq" },
+              { label: "Quest Docs", href: "/#/quest" }
+            ]
+          }
+        ];
+
+        cardsEl.innerHTML = cards
+          .map(function (card) {
+            var actions = card.actions
+              .map(function (action) {
+                return (
+                  '<a href="' +
+                  action.href +
+                  '" class="inline-flex text-white bg-indigo-500 border-0 py-1 px-3 focus:outline-none hover:bg-indigo-400 text-sm rounded-full mr-2 mb-2">' +
+                  action.label +
+                  "</a>"
+                );
+              })
+              .join("");
+
+            return (
+              '<article class="bg-gray-800 rounded-xl p-6">' +
+              '<h2 class="text-xl font-semibold mb-2">' +
+              card.title +
+              "</h2>" +
+              '<p class="text-sm text-gray-300 mb-4">' +
+              card.body +
+              "</p>" +
+              actions +
+              "</article>"
+            );
+          })
+          .join("");
+
+        loadedAt.textContent = "Dashboard loaded: " + new Date().toLocaleString();
+
+        var checklistBtn = document.getElementById("copy-checklist");
+        if (!checklistBtn) return;
+        checklistBtn.addEventListener("click", function () {
+          var text = [
+            "Headset model (Quest 2, 3, 3s)",
+            "Beat Saber version (ex: 1.37.0 or 1.40.8)",
+            "What step failed + what you already tried",
+            "Screenshots of errors"
+          ].join("\n");
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+              checklistBtn.textContent = "Checklist Copied";
+            });
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

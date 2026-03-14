@@ -1,6 +1,6 @@
 # Frequently asked Questions 
 Q: `Mobile VR Station` is missing scoped storage actions!  
-A: Try uninstalling and reinstalling it. [Read this for more info.](<https://wiki.sm0ke.org/#/quest?id=_2-installing-and-updating-mvrs>)  
+A: **Use the normal files app** or Try uninstalling and reinstalling it. [Read this for more info.](<https://wiki.sm0ke.org/#/quest?id=_2-installing-and-updating-mvrs>)  
   
 Q: Do I lose any purchased tracks when I uninstall Beat Saber / mod the game?   
 A: No, you keep all purchased items when modding, but you can't play songs introduced in the version after the one you downgrade to.  
@@ -14,8 +14,28 @@ A: There is little to no support with multiple accounts. There has been success 
 Q: **I can't find `VR Android File Manager`!**  
 A: Download `Mobile VR Station` and go to your library, click on the `...` and then `Settings` then `Release Channels` then select the one that is not selected (NOT `live`) and then click `Confirm`. Go back to your library and click the `...` again and then click `Update`. Once updated open the app navigate to `All Folders > Android > data` then click on `Scoped Actions` then `Request Permission`. Then install your apks.  
 
+## Swap Versions
+Need to swap versions to get custom sabers or play certain mods? Follow this!
+**Instructions:**
+1. Open MBF Launcher.
+2. Click on the ⚙️ icon. (between the `Your Mods` and `Add Mods`)
+3. Click `Uninstall Beat Saber`.
+4. Close MBF Launcher and open your app library.
+5. Go to all and redownload Beat Saber.
+6. Open MBF Launcher and click `Select Version`(not exactly the text).
+7. Select Use Latest Moddable for 1.40.8 (as of now) or any other version.
+8. Select `Confirm Downgrade` and then `Mod My App`.
+9. Continue like normal.
 
-### Troubleshooting
+## **Uninstall Mods Instructions:**
+1. Open MBF Launcher.
+2. Click on the ⚙️ icon. (between the `Your Mods` and `Add Mods`)
+3. Click `Uninstall Beat Saber`.
+4. Close MBF Launcher and open your app library.
+5. Go to all and redownload Beat Saber.
+6. That's it, you are now unmodded
+
+## Troubleshooting
 **Try this:**
 - Do you have multiple accounts?
 - Are you on the latest version?

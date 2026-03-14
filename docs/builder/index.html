@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Troubleshooter Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/assets/troubleshooter.js"></script>
+    <script src="/assets/troubleshooter-builder.js" defer></script>
+    <link rel="icon" href="/assets/logo.png" />
+    <meta
+      name="description"
+      content="Visual builder for the Beat Saber troubleshooting flow."
+    />
+    <style>
+      :root {
+        --app-bg: #111827;
+        --panel: #1f2937;
+        --panel-2: #0f172a;
+        --panel-3: #111827;
+        --border: #374151;
+        --border-soft: rgba(148, 163, 184, 0.16);
+        --text: #f9fafb;
+        --muted: #9ca3af;
+        --line: rgba(148, 163, 184, 0.3);
+        --accent: #6366f1;
+        --accent-2: #818cf8;
+        --split: #0b1220;
+        --sidebar-width: 300px;
+        --sidebar-handle-width: 10px;
+        --inspector-width: 420px;
+        --inspector-handle-width: 10px;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        background: var(--app-bg);
+        color: var(--text);
+      }
+
+      .app-shell {
+        height: 100vh;
+        display: grid;
+        grid-template-rows: 72px auto minmax(0, 1fr);
+        background: var(--app-bg);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 0 24px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.96);
+        backdrop-filter: blur(12px);
+      }
+
+      .actionbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 24px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(17, 24, 39, 0.98);
+      }
+
+      .workspace {
+        height: 100%;
+        min-height: 0;
+        position: relative;
+      }
+
+      .sidebar {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 30;
+        width: var(--sidebar-width);
+        min-width: 0;
+        min-height: 0;
+        overflow: auto;
+        border-right: 1px solid var(--border);
+        background: #17202e;
+        padding: 22px 18px;
+      }
+
+      .content {
+        height: 100%;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) var(--inspector-handle-width) var(--inspector-width);
+        position: relative;
+      }
+
+      .canvas-panel {
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        background: #101826;
+      }
+
+      .canvas-surface {
+        height: 100%;
+        overflow: hidden;
+        padding: 28px 32px 56px;
+        background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 0);
+        background-size: 14px 14px;
+        background-position: -7px -7px;
+        cursor: grab;
+        user-select: none;
+      }
+
+      .canvas-stage {
+        display: inline-block;
+        min-width: max-content;
+        min-height: 100%;
+        padding: 140px 220px 240px;
+        transform-origin: 0 0;
+        will-change: transform;
+      }
+
+      .canvas-surface.is-panning {
+        cursor: grabbing;
+      }
+
+      .inspector-panel {
+        min-width: 0;
+        min-height: 0;
+        overflow: auto;
+        border-left: 1px solid var(--border);
+        background: #17202e;
+        padding: 22px;
+      }
+
+      .sidebar-body,
+      .inspector-body {
+        display: block;
+      }
+
+      .resize-handle {
+        position: relative;
+        min-height: 0;
+        background: #0f172a;
+        cursor: col-resize;
+      }
+
+      .resize-handle.left {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: var(--sidebar-width);
+        z-index: 31;
+        width: var(--sidebar-handle-width);
+      }
+
+      .resize-handle::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 4px;
+        height: 52px;
+        border-radius: 999px;
+        transform: translate(-50%, -50%);
+        background: rgba(148, 163, 184, 0.28);
+      }
+
+      .resize-handle:hover::before,
+      .resize-handle.is-active::before {
+        background: rgba(129, 140, 248, 0.7);
+      }
+
+      .app-shell.left-collapsed {
+        --sidebar-width: 0px;
+        --sidebar-handle-width: 0px;
+      }
+
+      .app-shell.right-collapsed {
+        --inspector-width: 0px;
+        --inspector-handle-width: 0px;
+      }
+
+      .app-shell.left-collapsed .sidebar-body,
+      .app-shell.right-collapsed .inspector-body {
+        display: none;
+      }
+
+      .app-shell.left-collapsed .sidebar {
+        visibility: hidden;
+        padding: 0;
+        border-right: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .app-shell.right-collapsed .inspector-panel {
+        visibility: hidden;
+        padding: 0;
+        border-left: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .app-shell.left-collapsed .resize-handle.left,
+      .app-shell.right-collapsed .resize-handle.right {
+        display: none;
+      }
+
+      .panel-card {
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: rgba(31, 41, 55, 0.94);
+        box-shadow: 0 20px 40px rgba(2, 6, 23, 0.22);
+      }
+
+      .flow-stack,
+      .branch-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .branch-grid {
+        position: relative;
+        display: inline-flex;
+        align-items: start;
+        justify-content: center;
+        margin-top: 0;
+        padding-top: 0;
+        width: max-content;
+        max-width: 100%;
+      }
+
+      .branch-grid::before {
+        content: "";
+        position: absolute;
+        left: var(--branch-line-start, 50%);
+        right: var(--branch-line-end, 50%);
+        top: 0;
+        height: 2px;
+        border-radius: 999px;
+        background: var(--line);
+      }
+
+      .branch-column {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 0 0 auto;
+        width: calc(var(--branch-span, 1) * 312px);
+        padding: 0 14px 0;
+        box-sizing: border-box;
+      }
+
+      .branch-column::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 2px;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--line);
+        transform: translateX(-50%);
+      }
+
+      .flow-line {
+        width: 2px;
+        height: 28px;
+        border-radius: 999px;
+        background: var(--line);
+      }
+
+      .branch-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #374151;
+        color: #f9fafb;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 7px 14px;
+        margin-top: 28px;
+        margin-bottom: 0;
+      }
+
+      .step-card,
+      .split-card {
+        width: 284px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(31, 41, 55, 0.98);
+        text-align: left;
+        transition: 180ms ease;
+        box-shadow: 0 18px 36px rgba(2, 6, 23, 0.22);
+      }
+
+      .step-card:hover,
+      .split-card:hover {
+        transform: translateY(-1px);
+        border-color: #4b5563;
+      }
+
+      .step-card.is-dragging,
+      .split-card.is-dragging {
+        opacity: 0.45;
+        transform: scale(0.98);
+      }
+
+      .step-card.selected {
+        border-color: var(--accent-2);
+        box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.22), 0 18px 36px rgba(2, 6, 23, 0.22);
+      }
+
+      .step-card.drop-target {
+        border-color: var(--accent-2);
+        box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.28), 0 18px 36px rgba(2, 6, 23, 0.22);
+      }
+
+      .split-card {
+        background: var(--split);
+      }
+
+      .card-button {
+        width: 100%;
+        border: 0;
+        background: transparent;
+        padding: 14px 16px;
+        cursor: pointer;
+      }
+
+      .card-row {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+      }
+
+      .card-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .card-icon.step {
+        background: rgba(99, 102, 241, 0.16);
+        color: #c7d2fe;
+      }
+
+      .card-icon.result {
+        background: rgba(16, 185, 129, 0.16);
+        color: #a7f3d0;
+      }
+
+      .card-icon.split {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fcd34d;
+      }
+
+      .card-title {
+        font-size: 14px;
+        line-height: 1.35;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .card-meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+
+      .card-badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .card-badge.step {
+        background: rgba(99, 102, 241, 0.14);
+        color: #c7d2fe;
+      }
+
+      .card-badge.result {
+        background: rgba(16, 185, 129, 0.14);
+        color: #a7f3d0;
+      }
+
+      .card-badge.split {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fde68a;
+      }
+
+      .floating-expand {
+        position: absolute;
+        top: 18px;
+        z-index: 40;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.96);
+        color: var(--text);
+        box-shadow: 0 18px 36px rgba(2, 6, 23, 0.32);
+        backdrop-filter: blur(12px);
+      }
+
+      .floating-expand:hover {
+        border-color: var(--accent-2);
+      }
+
+      .floating-expand.left {
+        left: 18px;
+      }
+
+      .floating-expand.right {
+        right: 18px;
+      }
+
+      .app-shell.left-collapsed .floating-expand.left,
+      .app-shell.right-collapsed .floating-expand.right {
+        display: inline-flex;
+      }
+
+      @media (max-width: 1360px) {
+        .content {
+          grid-template-columns: 1fr;
+        }
+
+        .inspector-panel {
+          border-left: 0;
+          border-top: 1px solid var(--border);
+        }
+
+        .resize-handle.right {
+          display: none;
+        }
+
+        .floating-expand.right {
+          display: none !important;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        html,
+        body {
+          overflow: auto;
+        }
+
+        .app-shell {
+          height: auto;
+          min-height: 100vh;
+        }
+
+        .workspace {
+          display: block;
+        }
+
+        .sidebar {
+          position: relative;
+          top: auto;
+          right: auto;
+          bottom: auto;
+          left: auto;
+          z-index: auto;
+          width: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .resize-handle.left {
+          display: none;
+        }
+
+        .app-shell.left-collapsed,
+        .app-shell.right-collapsed {
+          --sidebar-width: 100%;
+          --sidebar-handle-width: 0px;
+          --inspector-width: 100%;
+          --inspector-handle-width: 0px;
+        }
+
+        .app-shell.left-collapsed .sidebar-body,
+        .app-shell.right-collapsed .inspector-body {
+          display: block;
+        }
+
+        .app-shell.left-collapsed .sidebar,
+        .app-shell.right-collapsed .inspector-panel {
+          padding: 22px 18px;
+        }
+
+        .floating-expand {
+          display: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="flex items-center gap-4 min-w-0">
+          <a href="/" class="inline-flex items-center gap-3 text-sm text-gray-300 shrink-0">
+            <img src="/assets/logo.png" alt="Beat Saber Wiki" class="h-10 w-10 rounded-lg" />
+            <span>Back to Wiki Home</span>
+          </a>
+          <div class="min-w-0">
+            <p class="text-xs uppercase tracking-[0.22em] text-gray-400 mb-1">Visual Builder</p>
+            <h1 class="text-xl font-semibold text-white truncate">Troubleshooter Flow Editor</h1>
+          </div>
+        </div>
+        <p id="builder-meta" class="text-xs text-gray-400 text-right">Loading builder...</p>
+      </header>
+
+      <section class="actionbar">
+        <button
+          id="undo-action"
+          type="button"
+          class="inline-flex justify-center text-white bg-gray-900 border border-gray-700 py-2 px-4 hover:border-indigo-400 text-sm rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Undo
+        </button>
+        <button
+          id="redo-action"
+          type="button"
+          class="inline-flex justify-center text-white bg-gray-900 border border-gray-700 py-2 px-4 hover:border-indigo-400 text-sm rounded-full disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Redo
+        </button>
+        <button
+          id="select-flow"
+          type="button"
+          class="inline-flex justify-center text-white bg-gray-900 border border-gray-700 py-2 px-4 hover:border-indigo-400 text-sm rounded-full"
+        >
+          Flow Settings
+        </button>
+        <button
+          id="load-default"
+          type="button"
+          class="inline-flex justify-center text-white bg-gray-900 border border-gray-700 py-2 px-4 hover:border-indigo-400 text-sm rounded-full"
+        >
+          Load Default
+        </button>
+        <label
+          class="inline-flex items-center justify-center text-white bg-gray-900 border border-gray-700 py-2 px-4 hover:border-indigo-400 text-sm rounded-full cursor-pointer"
+        >
+          <span>Import JSON</span>
+          <input id="import-json" type="file" accept=".json,application/json" class="hidden" />
+        </label>
+        <button
+          id="add-root-choice"
+          type="button"
+          class="inline-flex justify-center text-white bg-indigo-500 border-0 py-2 px-4 hover:bg-indigo-400 text-sm rounded-full"
+        >
+          Add Root Path
+        </button>
+        <button
+          id="open-preview"
+          type="button"
+          class="inline-flex justify-center text-white bg-gray-900 border border-gray-700 py-2 px-4 hover:border-indigo-400 text-sm rounded-full"
+        >
+          Open Preview
+        </button>
+        <button
+          id="download-json"
+          type="button"
+          class="inline-flex justify-center text-white bg-gray-900 border border-gray-700 py-2 px-4 hover:border-indigo-400 text-sm rounded-full"
+        >
+          Download JSON
+        </button>
+        <button
+          id="download-md"
+          type="button"
+          class="inline-flex justify-center text-white bg-gray-900 border border-gray-700 py-2 px-4 hover:border-indigo-400 text-sm rounded-full"
+        >
+          Download Markdown
+        </button>
+        <p class="ml-auto hidden 2xl:block text-xs text-gray-400 whitespace-nowrap">
+          Shortcuts: Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z redo, Ctrl/Cmd+C copy, Ctrl/Cmd+X cut, Ctrl/Cmd+V paste, Ctrl/Cmd+D duplicate, Del delete, Shift+A add path
+        </p>
+      </section>
+
+      <section class="workspace">
+        <button
+          id="toggle-sidebar-collapsed"
+          type="button"
+          class="floating-expand left"
+          aria-label="Expand left sidebar"
+        >
+          ▶
+        </button>
+        <aside class="sidebar">
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <p class="text-xs uppercase tracking-[0.2em] text-gray-400 mb-1">Left Rail</p>
+              <h2 class="text-base font-semibold text-white">Project</h2>
+            </div>
+            <button
+              id="toggle-sidebar"
+              type="button"
+              class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gray-900 border border-gray-700 text-white hover:border-indigo-400"
+              aria-label="Toggle left sidebar"
+            >
+              <span id="toggle-sidebar-icon">◀</span>
+            </button>
+          </div>
+          <div class="sidebar-body">
+          <div class="panel-card p-4 mb-4">
+            <p class="text-xs uppercase tracking-[0.2em] text-gray-400 mb-2">Builder</p>
+            <h2 class="text-lg font-semibold text-white">Workspace</h2>
+            <p class="text-sm text-gray-300 mt-3">
+              Locked app layout with a visual canvas, a control sidebar, and an inspector.
+            </p>
+          </div>
+
+          <div
+            id="builder-status"
+            class="hidden mb-4 rounded-xl border px-4 py-3 text-sm"
+            role="status"
+            aria-live="polite"
+          ></div>
+
+          <div class="panel-card p-4 mb-4">
+            <div class="flex items-center justify-between gap-3 mb-3">
+              <h3 class="text-sm font-semibold text-white">JSON</h3>
+              <button
+                id="copy-json"
+                type="button"
+                class="inline-flex text-white bg-gray-900 border border-gray-700 py-1.5 px-3 hover:border-indigo-400 text-xs rounded-full"
+              >
+                Copy
+              </button>
+            </div>
+            <textarea
+              id="json-output"
+              class="w-full min-h-[220px] rounded-xl border border-gray-700 bg-gray-900 px-4 py-3 text-xs text-gray-200 focus:outline-none focus:border-indigo-400"
+              spellcheck="false"
+            ></textarea>
+          </div>
+
+          <div class="panel-card p-4">
+            <div class="flex items-center justify-between gap-3 mb-3">
+              <h3 class="text-sm font-semibold text-white">Markdown</h3>
+              <button
+                id="copy-md"
+                type="button"
+                class="inline-flex text-white bg-gray-900 border border-gray-700 py-1.5 px-3 hover:border-indigo-400 text-xs rounded-full"
+              >
+                Copy
+              </button>
+            </div>
+            <textarea
+              id="markdown-output"
+              class="w-full min-h-[220px] rounded-xl border border-gray-700 bg-gray-900 px-4 py-3 text-xs text-gray-200 focus:outline-none focus:border-indigo-400"
+              spellcheck="false"
+            ></textarea>
+          </div>
+          </div>
+        </aside>
+        <div id="sidebar-resizer" class="resize-handle left" aria-hidden="true"></div>
+
+        <section class="content">
+          <button
+            id="toggle-inspector-collapsed"
+            type="button"
+            class="floating-expand right"
+            aria-label="Expand inspector"
+          >
+            ◀
+          </button>
+          <div class="canvas-panel">
+            <div id="canvas-surface" class="canvas-surface">
+              <div id="canvas-stage" class="canvas-stage">
+                <div class="flex items-center justify-between gap-3 mb-6">
+                  <div>
+                    <p class="text-xs uppercase tracking-[0.22em] text-gray-400 mb-2">Canvas</p>
+                    <h2 class="text-2xl font-semibold text-white">Flow Map</h2>
+                  </div>
+                </div>
+                <div id="tree-panel"></div>
+              </div>
+            </div>
+          </div>
+          <div id="inspector-resizer" class="resize-handle right" aria-hidden="true"></div>
+
+          <aside class="inspector-panel">
+            <div class="flex items-start justify-between gap-3 mb-5">
+              <div>
+                <p class="text-xs uppercase tracking-[0.22em] text-gray-400 mb-2">Inspector</p>
+                <h2 class="text-2xl font-semibold text-white">Selected Item</h2>
+              </div>
+              <div class="flex items-center gap-2">
+                <span
+                  id="selected-node-label"
+                  class="px-3 py-1 rounded-full bg-gray-900 border border-gray-700 text-xs text-gray-300"
+                ></span>
+                <button
+                  id="toggle-inspector"
+                  type="button"
+                  class="inline-flex items-center justify-center h-10 w-10 rounded-full bg-gray-900 border border-gray-700 text-white hover:border-indigo-400"
+                  aria-label="Toggle inspector"
+                >
+                  <span id="toggle-inspector-icon">▶</span>
+                </button>
+              </div>
+            </div>
+            <div class="inspector-body">
+              <div id="editor-panel"></div>
+            </div>
+          </aside>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

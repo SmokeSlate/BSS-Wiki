@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Beat Saber Troubleshooter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+    <script src="/assets/troubleshooter.js"></script>
+    <link rel="icon" href="/assets/logo.png" />
+    <meta
+      name="description"
+      content="Beat Saber troubleshooting form."
+    />
+    <style>
+      .md-copy p + p,
+      .md-copy ul + p,
+      .md-copy ol + p,
+      .md-copy p + ul,
+      .md-copy p + ol,
+      .md-copy ul + ul,
+      .md-copy ol + ol {
+        margin-top: 0.9rem;
+      }
+
+      .md-copy ul,
+      .md-copy ol {
+        padding-left: 1.25rem;
+      }
+
+      .md-copy ul {
+        list-style: disc;
+      }
+
+      .md-copy ol {
+        list-style: decimal;
+      }
+
+      .md-copy li + li {
+        margin-top: 0.35rem;
+      }
+
+      .md-copy a {
+        color: #a5b4fc;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .md-copy code {
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(55, 65, 81, 1);
+        border-radius: 0.45rem;
+        padding: 0.1rem 0.35rem;
+        font-size: 0.92em;
+      }
+
+      .md-copy pre {
+        overflow-x: auto;
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(55, 65, 81, 1);
+        border-radius: 0.9rem;
+        padding: 0.9rem 1rem;
+        margin-top: 0.9rem;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-900 text-white">
+    <main class="max-w-5xl mx-auto px-4 py-10 text-center">
+      <img src="/assets/logo.png" alt="Beat Saber Wiki" class="h-20 w-20 rounded-xl mx-auto mb-5" />
+      <h1 class="text-4xl font-bold">Beat Saber Troubleshooter</h1>
+      <p class="text-xl text-gray-300 mt-3">Choose your version and follow the form.</p>
+      <p id="loaded-at" class="text-xs text-gray-500 mt-3">Loading form...</p>
+
+      <div
+        id="status"
+        class="hidden mb-6 mt-6 rounded-xl border px-4 py-3 text-sm text-left"
+        role="status"
+        aria-live="polite"
+      ></div>
+
+      <div id="runtime" class="mt-8"></div>
+    </main>
+
+    <script>
+      (function bootstrapFixPage() {
+        var runtimeEl = document.getElementById("runtime");
+        var statusEl = document.getElementById("status");
+        var loadedAtEl = document.getElementById("loaded-at");
+        var defaultUrl = "/assets/fix-flow.json";
+        var previewKey = "bss-troubleshooter-builder-preview";
+
+        function setStatus(message, tone) {
+          if (!message) {
+            statusEl.className = "hidden mb-6 mt-6 rounded-xl border px-4 py-3 text-sm text-left";
+            statusEl.textContent = "";
+            return;
+          }
+
+          var base = "mb-6 mt-6 rounded-xl border px-4 py-3 text-sm text-left";
+          var styles = tone === "error"
+            ? " border-rose-400/30 bg-rose-500/10 text-rose-100"
+            : " border-indigo-400/30 bg-indigo-500/10 text-indigo-100";
+          statusEl.className = base + styles;
+          statusEl.textContent = message;
+        }
+
+        function renderFlow(data, fileLabel) {
+          Troubleshooter.renderRuntime(runtimeEl, data, {});
+          loadedAtEl.textContent = (fileLabel === "builder preview" ? "Preview updated " : "Updated ") + new Date().toLocaleString();
+        }
+
+        function loadDefaultFlow() {
+          return Troubleshooter.loadJsonUrl(defaultUrl).then(function (data) {
+            renderFlow(data, defaultUrl);
+            setStatus("", "success");
+          });
+        }
+
+        function tryBuilderPreview() {
+          var params = new URLSearchParams(window.location.search);
+          if (params.get("source") !== "builder") {
+            return Promise.reject(new Error("No builder preview requested."));
+          }
+
+          var raw = localStorage.getItem(previewKey);
+          if (!raw) {
+            return Promise.reject(new Error("No builder preview is stored yet."));
+          }
+
+          try {
+            renderFlow(Troubleshooter.normalizeData(JSON.parse(raw)), "builder preview");
+            setStatus("", "success");
+            return Promise.resolve();
+          } catch (error) {
+            return Promise.reject(error);
+          }
+        }
+
+        tryBuilderPreview().catch(function () {
+          return loadDefaultFlow().catch(function (error) {
+            setStatus(error.message || "Could not load the troubleshooting form.", "error");
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>

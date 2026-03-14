@@ -1,0 +1,361 @@
+{
+  "title": "Beat Saber Troubleshooter",
+  "description": "",
+  "intro": "",
+  "supportChecklist": [
+    "Beat Saber version",
+    "Headset or PC setup",
+    "What changed before it broke",
+    "Screenshot of the error"
+  ],
+  "quickLinks": [
+    {
+      "label": "FAQ (READ FIRST)",
+      "href": "/#/faq"
+    },
+    {
+      "label": "Support Chat",
+      "href": "/support"
+    }
+  ],
+  "root": {
+    "title": "What step are you on?",
+    "image": "",
+    "question": "",
+    "details": "",
+    "choices": [
+      {
+        "label": "Downloading APKs",
+        "description": "",
+        "result": {
+          "title": "New result",
+          "image": "",
+          "summary": "Explain the outcome.",
+          "steps": [
+            "First action"
+          ],
+          "links": []
+        },
+        "next": {
+          "title": "Downloading APKs",
+          "image": "",
+          "question": "Are you missing APKs or are they not downloading at all?",
+          "details": "",
+          "choices": [
+            {
+              "label": "Missing APKs",
+              "description": "",
+              "result": {
+                "title": "Missing APKs",
+                "image": "",
+                "summary": "Make sure you accept the permissions on the page.",
+                "steps": [
+                  "Click \"Download All\"",
+                  "Click \"Accept\" on the banner at the bottom of the screen"
+                ],
+                "links": [
+                  {
+                    "label": "Download Page",
+                    "href": "https://bsmd.sm0ke.org"
+                  }
+                ]
+              },
+              "next": null
+            },
+            {
+              "label": "Not downloading",
+              "description": "",
+              "result": {
+                "title": "Not Downloading",
+                "image": "",
+                "summary": "Check your internet connection.",
+                "steps": [],
+                "links": []
+              },
+              "next": null
+            }
+          ]
+        }
+      },
+      {
+        "label": "Installing APKs",
+        "description": "or MVRS issues",
+        "result": null,
+        "next": {
+          "title": "Installing APKs",
+          "image": "",
+          "question": "Whats wrong?",
+          "details": "",
+          "choices": [
+            {
+              "label": "Missing APKs",
+              "description": "",
+              "result": {
+                "title": "Missing APKs",
+                "image": "",
+                "summary": "Make sure you accept the permissions on the page.",
+                "steps": [
+                  "Click \"Download All\"",
+                  "Click \"Accept\" on the banner at the bottom of the screen"
+                ],
+                "links": [
+                  {
+                    "label": "Download Page",
+                    "href": "https://bsmd.sm0ke.org"
+                  }
+                ]
+              },
+              "next": null
+            },
+            {
+              "label": "MVRS not working / not updating",
+              "description": "",
+              "result": {
+                "title": "MVRS",
+                "image": "",
+                "summary": "MVRS is no longer needed. Use the default files app.",
+                "steps": [
+                  "Open the files app",
+                  "Click \"This Headset\"",
+                  "Look for \"Download\" and click on it",
+                  "Find the APKs and click on the \"...\" then click \"Open with\"",
+                  "Click Package installer -> Settings -> Allow from this source -> install",
+                  "and repeat with each APK"
+                ],
+                "links": []
+              },
+              "next": null
+            },
+            {
+              "label": "APKs not installing",
+              "description": "",
+              "result": {
+                "title": "APKs not installing",
+                "image": "",
+                "summary": "Please get support at the discord or the support chat",
+                "steps": [],
+                "links": [
+                  {
+                    "label": "Discord",
+                    "href": "https://d.sm0ke.org/"
+                  },
+                  {
+                    "label": "Support Chat",
+                    "href": "https://wiki.sm0ke.org/support/"
+                  }
+                ]
+              },
+              "next": null
+            }
+          ]
+        }
+      },
+      {
+        "label": "Enabling Developer Mode",
+        "description": "",
+        "result": null,
+        "next": {
+          "title": "Enabling Developer Mode and Wireless Debugging",
+          "image": "",
+          "question": "What issue are you experiencing? ",
+          "details": "",
+          "choices": [
+            {
+              "label": "Clicked more than 10 times",
+              "description": "",
+              "result": null,
+              "next": {
+                "title": "Enabling",
+                "image": "",
+                "question": "Do you have multiple accounts?",
+                "details": "",
+                "choices": [
+                  {
+                    "label": "Yes",
+                    "description": "",
+                    "result": {
+                      "title": "Use the admin account",
+                      "image": "",
+                      "summary": "",
+                      "steps": [],
+                      "links": []
+                    },
+                    "next": null
+                  },
+                  {
+                    "label": "No",
+                    "description": "",
+                    "result": null,
+                    "next": {
+                      "title": "Try restarting your headset.",
+                      "image": "",
+                      "question": "Hold the power button, click show more and then restart.",
+                      "details": "",
+                      "choices": [
+                        {
+                          "label": "Worked!",
+                          "description": "",
+                          "result": {
+                            "title": "Continue modding!",
+                            "image": "",
+                            "summary": "",
+                            "steps": [],
+                            "links": []
+                          },
+                          "next": null
+                        },
+                        {
+                          "label": "Still not working!",
+                          "description": "",
+                          "result": null,
+                          "next": {
+                            "title": "Wait 1-2 hours and try again",
+                            "image": "",
+                            "question": "",
+                            "details": "",
+                            "choices": [
+                              {
+                                "label": "STILL not working",
+                                "description": "",
+                                "result": {
+                                  "title": "Get help",
+                                  "image": "",
+                                  "summary": "Please get support at the discord or the support chat",
+                                  "steps": [],
+                                  "links": [
+                                    {
+                                      "label": "Discord",
+                                      "href": "https://d.sm0ke.org/"
+                                    },
+                                    {
+                                      "label": "Support Chat",
+                                      "href": "https://wiki.sm0ke.org/support/"
+                                    }
+                                  ]
+                                },
+                                "next": null
+                              },
+                              {
+                                "label": "Worked!",
+                                "description": "",
+                                "result": {
+                                  "title": "Continue modding!",
+                                  "image": "",
+                                  "summary": "",
+                                  "steps": [],
+                                  "links": []
+                                },
+                                "next": null
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "label": "Wireless Debugging",
+              "description": "",
+              "result": {
+                "title": "Get help",
+                "image": "",
+                "summary": "Please get support at the discord or the support chat",
+                "steps": [],
+                "links": [
+                  {
+                    "label": "Discord",
+                    "href": "https://d.sm0ke.org/"
+                  },
+                  {
+                    "label": "Support Chat",
+                    "href": "https://wiki.sm0ke.org/support/"
+                  }
+                ]
+              },
+              "next": null
+            }
+          ]
+        }
+      },
+      {
+        "label": "MBF Launcher issue",
+        "description": "",
+        "result": null,
+        "next": {
+          "title": "MBF Launcher issue",
+          "image": "",
+          "question": "What issue are you experiencing? ",
+          "details": "",
+          "choices": [
+            {
+              "label": "Missing mods",
+              "description": "",
+              "result": {
+                "title": "Mods missing",
+                "image": "",
+                "summary": "Make sure you are on the correct version!\n\nYou can [**change version**](/#/vchange) if needed",
+                "steps": [],
+                "links": []
+              },
+              "next": null
+            },
+            {
+              "label": "It says \"Awaiting patch generation\"",
+              "description": "",
+              "result": {
+                "title": "New result",
+                "image": "",
+                "summary": "Explain the outcome.",
+                "steps": [
+                  "First action"
+                ],
+                "links": []
+              },
+              "next": null
+            }
+          ]
+        }
+      },
+      {
+        "label": "Game Crash / Game Issue",
+        "description": "",
+        "result": null,
+        "next": {
+          "title": "Game Crash / Game Issue",
+          "image": "",
+          "question": "What issue are you experiencing? ",
+          "details": "",
+          "choices": [
+            {
+              "label": "Game Crash on load",
+              "description": "",
+              "result": null,
+              "next": {
+                "title": "New step",
+                "image": "",
+                "question": "What should this step ask?",
+                "details": "",
+                "choices": []
+              }
+            },
+            {
+              "label": "Game Crash on playing song",
+              "description": "",
+              "result": null,
+              "next": {
+                "title": "New step",
+                "image": "",
+                "question": "What should this step ask?",
+                "details": "",
+                "choices": []
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

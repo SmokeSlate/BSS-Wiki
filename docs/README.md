@@ -1,7 +1,7 @@
 <h1 class="hero-title">Welcome to the Beat Saber Modding Wiki!</h1> 
 <h1 class="hero-subtitle">This wiki is designed to help you learn how to mod Beat Saber!</h1><br>
 
-<a href="/#/preQuest"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">Quest Guide</button></a> <a href="/#/prePC"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">PC Guide</button></a> <a href="/support"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">Support Chat</button></a><br><br>
+<a href="/#/preQuest"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">Quest Guide</button></a> <a href="/#/prePC"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">PC Guide</button></a> <a href="/support"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">Support Chat</button></a> <a href="/fix"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">Troubleshooter</button></a><br><br>
 
 <div class="flex flex-col md:flex-row gap-2 justify-center mt-8">
   <div class="bg-gray-800 rounded-xl p-8 min-w-[260px] flex-1">
