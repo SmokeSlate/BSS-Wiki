@@ -1,5 +1,4 @@
 <a href="/"><img src="/assets/logo.png" style="width:150px;height:150px;margin-left:calc(50% - 85px);margin-right:calc(50% - 65px);"></img></a>
-* [Fix Troubleshooter](/fix ':ignore')
 * Preparations
   * [Quest](/preQuest.md)
   * [PC](prePC.md)
