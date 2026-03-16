@@ -306,12 +306,10 @@
               "label": "It says \"Awaiting patch generation\"",
               "description": "",
               "result": {
-                "title": "New result",
+                "title": "\"Awaiting patch generation\"",
                 "image": "",
-                "summary": "Explain the outcome.",
-                "steps": [
-                  "First action"
-                ],
+                "summary": "Please wait for patches to update to suport the latest version, it should be between 1 hour - 2 days.",
+                "steps": [],
                 "links": []
               },
               "next": null
@@ -326,31 +324,208 @@
         "next": {
           "title": "Game Crash / Game Issue",
           "image": "",
-          "question": "What issue are you experiencing? ",
+          "question": "What version are you on?",
           "details": "",
           "choices": [
             {
-              "label": "Game Crash on load",
+              "label": "1.37",
               "description": "",
               "result": null,
               "next": {
-                "title": "New step",
+                "title": "1.37",
                 "image": "",
-                "question": "What should this step ask?",
+                "question": "What issue are you having?",
                 "details": "",
-                "choices": []
+                "choices": [
+                  {
+                    "label": "Game Crash on load",
+                    "description": "",
+                    "result": null,
+                    "next": {
+                      "title": "Game Crash on load",
+                      "image": "",
+                      "question": "Have you tried reopening?",
+                      "details": "",
+                      "choices": [
+                        {
+                          "label": "Not working",
+                          "description": "",
+                          "result": {
+                            "title": "Get help",
+                            "image": "",
+                            "summary": "Please get support at the discord or the support chat. Install the mod in the first link and provide your selected username in the discord/ support chat once you have installed the mod.",
+                            "steps": [],
+                            "links": [
+                              {
+                                "label": "Mod Link",
+                                "href": "http://bsquest.xyz/crgen/crgen.html"
+                              },
+                              {
+                                "label": "Discord",
+                                "href": "https://d.sm0ke.org/"
+                              },
+                              {
+                                "label": "Support Chat",
+                                "href": "https://wiki.sm0ke.org/support/"
+                              }
+                            ]
+                          },
+                          "next": null
+                        },
+                        {
+                          "label": "Worked!",
+                          "description": "",
+                          "result": {
+                            "title": "Have fun!",
+                            "image": "",
+                            "summary": "",
+                            "steps": [],
+                            "links": []
+                          },
+                          "next": null
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "label": "Game Crash on playing song",
+                    "description": "",
+                    "result": null,
+                    "next": {
+                      "title": "Please check your mods.",
+                      "image": "",
+                      "question": "Uninstall “IForgor”, “Endless”, or “Qosmetics” as they are known to cause crashes.",
+                      "details": "",
+                      "choices": [
+                        {
+                          "label": "Still crashing",
+                          "description": "",
+                          "result": {
+                            "title": "Get help",
+                            "image": "",
+                            "summary": "Please get support at the discord or the support chat. Install the mod in the first link and provide your selected username in the discord/ support chat once you have installed the mod.",
+                            "steps": [],
+                            "links": [
+                              {
+                                "label": "Mod Link",
+                                "href": "http://bsquest.xyz/crgen/crgen.html"
+                              },
+                              {
+                                "label": "Discord",
+                                "href": "https://d.sm0ke.org/"
+                              },
+                              {
+                                "label": "Support Chat",
+                                "href": "https://wiki.sm0ke.org/support/"
+                              }
+                            ]
+                          },
+                          "next": null
+                        },
+                        {
+                          "label": "Worked!",
+                          "description": "",
+                          "result": {
+                            "title": "Have fun!",
+                            "image": "",
+                            "summary": "",
+                            "steps": [],
+                            "links": []
+                          },
+                          "next": null
+                        }
+                      ]
+                    }
+                  }
+                ]
               }
             },
             {
-              "label": "Game Crash on playing song",
+              "label": "1.40.8",
               "description": "",
               "result": null,
               "next": {
-                "title": "New step",
+                "title": "1.40.8",
                 "image": "",
-                "question": "What should this step ask?",
+                "question": "What issue are you having?",
                 "details": "",
-                "choices": []
+                "choices": [
+                  {
+                    "label": "Game Crash on load",
+                    "description": "",
+                    "result": null,
+                    "next": {
+                      "title": "Game Crash on load",
+                      "image": "",
+                      "question": "Have you tried reopening?",
+                      "details": "",
+                      "choices": [
+                        {
+                          "label": "Not working",
+                          "description": "",
+                          "result": {
+                            "title": "Get help",
+                            "image": "",
+                            "summary": "Please get support at the discord or the support chat. Install the mod in the first link and provide your selected username in the discord/ support chat once you have installed the mod.",
+                            "steps": [],
+                            "links": [
+                              {
+                                "label": "Mod Link",
+                                "href": "http://bsquest.xyz/crgen/crgen.html"
+                              },
+                              {
+                                "label": "Discord",
+                                "href": "https://d.sm0ke.org/"
+                              },
+                              {
+                                "label": "Support Chat",
+                                "href": "https://wiki.sm0ke.org/support/"
+                              }
+                            ]
+                          },
+                          "next": null
+                        },
+                        {
+                          "label": "Worked!",
+                          "description": "",
+                          "result": {
+                            "title": "Have fun!",
+                            "image": "",
+                            "summary": "",
+                            "steps": [],
+                            "links": []
+                          },
+                          "next": null
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "label": "Game Crash on playing song",
+                    "description": "",
+                    "result": {
+                      "title": "Get help",
+                      "image": "",
+                      "summary": "Please get support at the discord or the support chat. Install the mod in the first link and provide your selected username in the discord/ support chat once you have installed the mod.",
+                      "steps": [],
+                      "links": [
+                        {
+                          "label": "Mod Link",
+                          "href": "http://bsquest.xyz/crgen/crgen.html"
+                        },
+                        {
+                          "label": "Discord",
+                          "href": "https://d.sm0ke.org/"
+                        },
+                        {
+                          "label": "Support Chat",
+                          "href": "https://wiki.sm0ke.org/support/"
+                        }
+                      ]
+                    },
+                    "next": null
+                  }
+                ]
               }
             }
           ]
