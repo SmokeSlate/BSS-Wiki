@@ -4,7 +4,7 @@
 			"path": "."
 		},
 		{
-			"path": "../../../../../xampp/smoke/wiki"
+			"path": "../../../../../xampp/htdocs/smoke/wiki"
 		}
 	],
 	"settings": {}
