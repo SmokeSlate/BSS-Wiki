@@ -143,17 +143,7 @@ async def bridge_reply():
         "support",
     )
 
-    current_content = strip_metadata(message.content or "")
-    if current_content:
-        updated_content = f"{current_content}\n{metadata_line}".strip()
-    else:
-        updated_content = metadata_line
-
-    edited_message = await edit_message(message.id, updated_content)
-    if edited_message is None:
-        await debug_bridge("edit", "metadata update skipped")
-    else:
-        await debug_bridge("edit", "metadata updated")
+    await debug_bridge("edit", "skipped for reply-authored message")
     await react(SUCCESS_REACTION)
     await debug_bridge("done", f"new_message_id={new_message_id}")
 
