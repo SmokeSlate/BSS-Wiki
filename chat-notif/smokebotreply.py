@@ -3,6 +3,7 @@ ADMIN_KEY = "2cbde912cd3bc69f2a82e4e39e592bdce5d18aafab71d24ab493ba5893a5b550"
 SUCCESS_REACTION = "✅"
 FAIL_REACTION = "⚠️"
 DEBUG_BRIDGE = True
+DEBUG_CHANNEL_ID = 1403090423928586432
 META_PATTERN = r"(?is)(?:^|\r?\n)\s*(?:-#\s*)?bss-chat\s+conversation=(\S+)\s+message=(\S+)(?:\s+role=(\S+))?(?=\s*$|\r?\n)"
 
 
@@ -45,13 +46,23 @@ def build_outbound_text():
 
 
 async def bridge_reply():
+    async def debug_bridge(step, detail=""):
+        if not DEBUG_BRIDGE:
+            return
+        text = f"Bridge debug: {step}"
+        if detail:
+            text = f"{text} | {detail}"
+        await send(text[:1800], channel_id=DEBUG_CHANNEL_ID)
+
     async def fail_bridge(reason):
         await react(FAIL_REACTION)
         if DEBUG_BRIDGE:
-            await reply(f"Bridge failed: {reason}")
+            await send(f"Bridge failed: {reason}"[:1800], channel_id=DEBUG_CHANNEL_ID)
 
     if author.bot:
         return
+
+    await debug_bridge("start", f"event={event} reply={bool(referenced_message)}")
 
     if not referenced_message:
         if DEBUG_BRIDGE and "bss-chat" in str(message.content or "").lower():
@@ -59,16 +70,24 @@ async def bridge_reply():
         return
 
     reference_content = str(referenced_message.content or "")
+    await debug_bridge("reference", reference_content[:180].replace("\n", "\\n"))
     metadata = extract_metadata(reference_content)
     if not metadata:
         if DEBUG_BRIDGE and "bss-chat" in reference_content.lower():
             await fail_bridge(f"metadata not parsed: {reference_content[:160]}")
         return
 
+    await debug_bridge(
+        "metadata",
+        f"conversation={metadata['conversation_id']} message={metadata['message_id']} role={metadata['role']}",
+    )
+
     text = build_outbound_text()
     if not text:
         await fail_bridge("reply text is empty")
         return
+
+    await debug_bridge("outbound", text[:180].replace("\n", "\\n"))
 
     clean_base = CHAT_API_BASE.rstrip("/")
     if not clean_base or ADMIN_KEY == "REPLACE_WITH_CHAT_ADMIN_KEY":
@@ -102,6 +121,11 @@ async def bridge_reply():
         timeout=20,
     )
 
+    await debug_bridge(
+        "http",
+        f"ok={bool(result.get('ok'))} status={result.get('status', 0)}",
+    )
+
     if not result.get("ok"):
         status = result.get("status", 0)
         error_text = strip_metadata(result.get("text", ""))[:150]
@@ -127,6 +151,7 @@ async def bridge_reply():
 
     await edit_message(message.id, updated_content)
     await react(SUCCESS_REACTION)
+    await debug_bridge("done", f"new_message_id={new_message_id}")
 
 
 __script_async_entry__ = bridge_reply
