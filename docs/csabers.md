@@ -7,7 +7,6 @@ Make sure to use the version that your headset works
   You can find ReeSabers at <https://patreon.com/beatleader  
  
 If you want custom sabers for free, update to 1.40.8:
-**Instructions:**
 1. Open MBF Launcher.
 2. Click on the ⚙️ icon. (between the `Your Mods` and `Add Mods`)
 3. Click `Uninstall Beat Saber`.
