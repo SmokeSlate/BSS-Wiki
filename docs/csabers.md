@@ -11,7 +11,7 @@ Make sure to use the version that your headset works
 ### Installing custom sabers
 !> This only works with .whacker files  
 
-Simply click on add files and select your .whacker file.
+**Simply click on add files and select your .whacker file.**
 
 If that doesn't work, follow this video: **https://youtu.be/08r6Llfiugo**  
    *Make sure to have `CX File Explorer` bundled in https://bsmd.sm0ke.org/ !*
