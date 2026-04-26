@@ -8,7 +8,8 @@ Make sure to use the version that your headset works
  
   If you want custom sabers for free, update to 1.40.8.
 
-Installing custom sabers (this only works with .whacker files):
+### Installing custom sabers
+!> This only works with .whacker files
    Simply click on add files and select your .whacker file.
 
 If that doesn't work, follow this video: **<https://youtu.be/08r6Llfiugo  **
