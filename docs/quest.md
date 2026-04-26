@@ -16,35 +16,23 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
     - These include **CX File Explorer**, **MBF Launcher** and **Dev Tools Opener**.
     - Once downloaded, you can close the browser.
 
-### 2. Installing and updating MVRS
-1. Open the **Meta Quest Store**.
-2. Search for **Mobile VR Station** (MVRS) and install it.
-3. After installation, open MVRS and navigate to **Settings** (three‑dot menu → **Settings**).
-4. Find the option **Old Oculus Version**, click **Opt In** and `Done`.
-5. Close MVRS and then reopen it.
-6. Tap **Update** to install the older Oculus version.
-    - If you don't see `Update`, try uninstalling MVRS and reinstall it.
-7. When prompted, allow any requested permissions. MVRS will now show a file‑browser interface.
-
-### 3. Installing APKs (Using MVRS)
-1. In MVRS, go to **Local Files** → **android** → **data**.
-2. Scroll to the bottom and select **Scoped Storage Actions** → **Request Access**.
-3. Navigate to the **download** folder on the window that opens (you can sort by "modified newest first" to see recent files).
-4. Tap the **CX File Explorer** APK:
+### 2. Installing APKs 
+1. Open the **Files app**(it is preinstalled on your headset).
+2. Click on **downloads**.
+3. Tap the `...` next to **CX File Explorer**, click **package installer**, and install it:
     - Tap **Settings**, enable the option to allow installations from unknown sources, and tap **Install**.
     - When done, tap **Done** (do not open it yet).
-5. Tap the **MBF Launcher** APK and install it. When installation completes, tap **Done** (do **not** open it yet).
-6. Tap the **Dev Tools Opener** APK (named `OpenSettings.apk`) and install it. Tap **Done**.
-7. Close the MVRS installation window. The app may crash, otherwise close it.
-8. Back in the Quest app drawer, under **Unknown Sources**, you should now see **Dev Tools Opener**, **MBF Launcher**, and **CX File Explorer**.
+4. Tap the `...` next to **MBF Launcher** APK, click **package installer**, and install it. When installation completes, tap **Done** (do **not** open it yet).
+5. Tap the `...` next to **Dev Tools Opener** APK (named `OpenSettings.apk`), click **package installer**, and install it. Tap **Done**.
+6. Back in the Quest app drawer, under **Unknown Sources**, you should now see **Dev Tools Opener**, **MBF Launcher**, and **CX File Explorer**.
 
-### 4. Reinstalling Beat Saber
+### 3. Reinstalling Beat Saber
 1. From the Quest library, select **All** and locate **Beat Saber**.
 2. Click the **…** menu and choose **Remove/Uninstall**.
     - A clean uninstall ensures the game is on the latest version before downgrading.
 3. Reinstall Beat Saber from the store and wait for it to finish installing.
 
-### 5. Using Dev Tools Opener to enable Developer Mode
+### 4. Using Dev Tools Opener to enable Developer Mode
 1. Launch **MBF Launcher** (but do not start modding yet).
 2. Open **Dev Tools Opener** and choose **Open Settings**. Then click `Open` on the window that pops up. 
 3. Go to **About Headset**. Scroll to the bottom and tap **Build Number** repeatedly until you see the message **“You are now a developer”**.
@@ -53,7 +41,7 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
 6. Tap `Pair with pairing code` and put the code the code shown into the MBF Launcher window.
 7. Once pairing completes, close the pairing dialog and close Dev Tools Opener.
 
-### 6. Downgrading Beat Saber & modding via MBF
+### 5. Downgrading Beat Saber & modding via MBF
 1. Go to **MBF Launcher** You should now see the modding interface.
 2. Select a Beat Saber version to downgrade to (blue text):
     - **v1.37** - more mods available but less stable.
@@ -63,7 +51,7 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
 4. Tap `Mod The App` to begin the downgrade and mod installation.
     - This process can take ~15 minutes; wait until it finishes. **MAKE SURE YOUR HEADSET DOES *NOT* POWER OFF DURING THIS**
 
-### 7. Installing mods
+### 6. Installing mods
 1. In the interface that pops up after you finish.
 2. Select the mods you want and tap **Install**.
 3. Wait until each mod reports **successfully installed**.
@@ -71,7 +59,7 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
 
 ?> See [recommended mods here](/modsQuest).
 
-### 8. Launching Beat Saber with mods
+### 7. Launching Beat Saber with mods
 1. Launch **Beat Saber** from the Quest menu.
     - The game may crash several times on launch; if it does, simply reopen it until it loads successfully.
 2. Accept any prompts and proceed to the main menu.
