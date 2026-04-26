@@ -13,7 +13,7 @@ Make sure to use the version that your headset works
 
 Simply click on add files and select your .whacker file.
 
-If that doesn't work, follow this video: **https://youtu.be/08r6Llfiugo  **
+If that doesn't work, follow this video: **https://youtu.be/08r6Llfiugo**  
    *Make sure to have `CX File Explorer` bundled in https://bsmd.sm0ke.org/ !*
 
 Find sabers on the [Qosmetics Discord](https://discord.gg/JNuFC7XMTk)
