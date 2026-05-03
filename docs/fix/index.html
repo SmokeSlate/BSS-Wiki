@@ -13,6 +13,16 @@
       name="description"
       content="Beat Saber troubleshooting form."
     />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NDRRR0YEW9"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-NDRRR0YEW9");
+    </script>
     <style>
       .md-copy p + p,
       .md-copy ul + p,
@@ -106,7 +116,11 @@
         }
 
         function renderFlow(data, fileLabel) {
-          Troubleshooter.renderRuntime(runtimeEl, data, {});
+          Troubleshooter.renderRuntime(runtimeEl, data, {
+            analyticsContext: {
+              flowSource: fileLabel === "builder preview" ? "builder_preview" : "default",
+            },
+          });
           loadedAtEl.textContent = (fileLabel === "builder preview" ? "Preview updated " : "Updated ") + new Date().toLocaleString();
         }
 
@@ -139,6 +153,12 @@
 
         tryBuilderPreview().catch(function () {
           return loadDefaultFlow().catch(function (error) {
+            if (typeof window.gtag === "function") {
+              window.gtag("event", "troubleshooter_load_error", {
+                flow_source: "default",
+                error_message: String(error && error.message ? error.message : "unknown error").slice(0, 100),
+              });
+            }
             setStatus(error.message || "Could not load the troubleshooting form.", "error");
           });
         });

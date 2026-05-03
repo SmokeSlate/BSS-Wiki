@@ -171,6 +171,67 @@
     return path.length ? path.map(function (part) { return part + 1; }).join(".") : "root";
   }
 
+  function truncateText(value, maxLength) {
+    var text = asText(value).trim();
+    var size = typeof maxLength === "number" ? maxLength : 80;
+    if (!text) {
+      return "";
+    }
+    return text.length > size ? text.slice(0, size - 1) + "…" : text;
+  }
+
+  function normalizeAnalyticsValue(value) {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
+    if (typeof value === "boolean") {
+      return value ? 1 : 0;
+    }
+    if (typeof value === "number") {
+      return isFinite(value) ? value : undefined;
+    }
+    return truncateText(String(value), 100);
+  }
+
+  function trackAnalyticsEvent(name, params) {
+    var payload = {};
+    if (typeof global.gtag !== "function") {
+      return;
+    }
+
+    Object.keys(params || {}).forEach(function (key) {
+      var value = normalizeAnalyticsValue(params[key]);
+      if (value !== undefined) {
+        payload[key] = value;
+      }
+    });
+
+    global.gtag("event", name, payload);
+  }
+
+  function getFlowStats(root) {
+    var stats = {
+      nodeCount: 0,
+      branchCount: 0,
+      resultCount: 0,
+      maxDepth: 0
+    };
+
+    walkTree(root, function (node, path) {
+      var choices = asArray(node && node.choices);
+      stats.nodeCount += 1;
+      stats.branchCount += choices.length;
+      stats.maxDepth = Math.max(stats.maxDepth, path.length);
+      choices.forEach(function (choice) {
+        if (choice && choice.result) {
+          stats.resultCount += 1;
+        }
+      });
+    }, []);
+
+    return stats;
+  }
+
   function treeToMarkdown(data) {
     var flow = normalizeData(data);
     var lines = [];
@@ -257,14 +318,28 @@
 
   function renderRuntime(container, data, options) {
     var flow = normalizeData(data);
+    var analyticsContext = options && options.analyticsContext ? options.analyticsContext : {};
+    var flowStats = getFlowStats(flow.root);
     var state = {
       trail: [],
       currentPath: []
     };
 
+    trackAnalyticsEvent("troubleshooter_loaded", {
+      flow_title: flow.title,
+      flow_source: analyticsContext.flowSource || "default",
+      node_count: flowStats.nodeCount,
+      branch_count: flowStats.branchCount,
+      result_count: flowStats.resultCount,
+      max_depth: flowStats.maxDepth,
+      quick_link_count: flow.quickLinks.length,
+      support_checklist_count: flow.supportChecklist.length
+    });
+
     function renderCurrent() {
       var node = getNodeAtPath(flow.root, state.currentPath) || flow.root;
       var result = state.trail.length ? getActiveResult() : null;
+      var currentPathText = formatPath(state.currentPath);
       var trailHtml = state.trail.length
         ? state.trail.map(function (item) {
             return '<span class="px-3 py-1 rounded-full bg-gray-900 text-gray-200 text-xs border border-gray-700">' + escapeHtml(item.label) + "</span>";
@@ -313,6 +388,32 @@
           )
         : "";
 
+      if (isResultView) {
+        var lastStep = state.trail[state.trail.length - 1] || {};
+        var resultPath = (lastStep.pathBefore || []).concat(lastStep.choiceIndex);
+        trackAnalyticsEvent("troubleshooter_result_view", {
+          flow_source: analyticsContext.flowSource || "default",
+          result_path: formatPath(resultPath),
+          depth: resultPath.length,
+          result_title: activeTitle,
+          step_count: result.steps.length,
+          link_count: result.links.length,
+          has_image: Boolean(result.image),
+          trail_length: state.trail.length
+        });
+      } else {
+        trackAnalyticsEvent("troubleshooter_step_view", {
+          flow_source: analyticsContext.flowSource || "default",
+          step_path: currentPathText,
+          depth: state.currentPath.length,
+          step_title: activeTitle,
+          choice_count: node.choices.length,
+          has_image: Boolean(node.image),
+          has_details: Boolean(node.details),
+          trail_length: state.trail.length
+        });
+      }
+
       container.innerHTML =
         '<section class="max-w-4xl mx-auto bg-gray-800 rounded-xl p-8 ' + (isResultView ? "text-left" : "text-center") + '">' +
           '<div class="flex flex-wrap justify-center gap-2 mb-6">' + trailHtml + "</div>" +
@@ -331,19 +432,31 @@
       var choiceButtons = container.querySelectorAll("[data-choice-index]");
       Array.prototype.forEach.call(choiceButtons, function (button) {
         button.addEventListener("click", function () {
-          var choice = node.choices[Number(button.getAttribute("data-choice-index"))];
+          var choiceIndex = Number(button.getAttribute("data-choice-index"));
+          var choice = node.choices[choiceIndex];
           if (!choice) {
             return;
           }
 
+          trackAnalyticsEvent("troubleshooter_choice_select", {
+            flow_source: analyticsContext.flowSource || "default",
+            from_path: currentPathText,
+            to_path: formatPath(state.currentPath.concat(choiceIndex)),
+            depth: state.currentPath.length,
+            choice_index: choiceIndex + 1,
+            choice_label: choice.label || ("Choice " + (choiceIndex + 1)),
+            target_type: choice.next ? "step" : "result",
+            has_result_links: Boolean(choice.result && choice.result.links && choice.result.links.length)
+          });
+
           state.trail.push({
             label: choice.label || "Choice",
-            choiceIndex: Number(button.getAttribute("data-choice-index")),
+            choiceIndex: choiceIndex,
             pathBefore: state.currentPath.slice(),
             advanced: Boolean(choice.next)
           });
           if (choice.next) {
-            state.currentPath.push(Number(button.getAttribute("data-choice-index")));
+            state.currentPath.push(choiceIndex);
           }
           renderCurrent();
         });
@@ -357,6 +470,11 @@
           }
           var lastStep = state.trail.pop();
           state.currentPath = lastStep && lastStep.pathBefore ? lastStep.pathBefore.slice() : [];
+          trackAnalyticsEvent("troubleshooter_back", {
+            flow_source: analyticsContext.flowSource || "default",
+            to_path: formatPath(state.currentPath),
+            remaining_trail_length: state.trail.length
+          });
           renderCurrent();
         });
       }
@@ -364,6 +482,10 @@
       var resetButton = container.querySelector("#runtime-reset");
       if (resetButton) {
         resetButton.addEventListener("click", function () {
+          trackAnalyticsEvent("troubleshooter_reset", {
+            flow_source: analyticsContext.flowSource || "default",
+            completed_trail_length: state.trail.length
+          });
           state.trail = [];
           state.currentPath = [];
           renderCurrent();
