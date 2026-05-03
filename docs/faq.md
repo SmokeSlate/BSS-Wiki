@@ -1,12 +1,12 @@
 # Frequently asked Questions 
 Q: `Mobile VR Station` is missing scoped storage actions!  
-A: **Use the normal files app** or Try uninstalling and reinstalling it. [Read this for more info.](<https://wiki.sm0ke.org/#/quest?id=_2-installing-and-updating-mvrs>)  
+A: **Use the normal files app** or Try uninstalling and reinstalling it. [Read this for more info.](<[https://wiki.sm0ke.org/#/quest?id=_2-installing-and-updating-mvrs](https://wiki.sm0ke.org/#/quest?id=_2-installing-apks)>)  
   
 Q: Do I lose any purchased tracks when I uninstall Beat Saber / mod the game?   
 A: No, you keep all purchased items when modding, but you can't play songs introduced in the version after the one you downgrade to.  
 
 Q: Go to settings isn't working.  
-A: Use [Quest Settings Opener](<https://github.com/SmokeSlate/QuestDevSettings/releases/download/2.0/OpenSettings.apk>). [Steps on how here.](<https://wiki.sm0ke.org/#/quest?id=_5-using-dev-tools-opener-to-enable-developer-mode>)  
+A: Use [Quest Settings Opener](<https://github.com/SmokeSlate/QuestDevSettings/releases/download/2.0/OpenSettings.apk>). [Steps on how here.](<https://wiki.sm0ke.org/#/quest?id=_4-using-dev-tools-opener-to-enable-developer-mode>)  
 
 Q: Does it work with multiple accounts?  
 A: There is little to no support with multiple accounts. There has been success on headset admin accounts so try that.  
