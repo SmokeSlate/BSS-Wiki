@@ -1,14 +1,23 @@
-# Quest Modding  
+# Quest Modding
+
+::: tip MBF Tools App
+**New to this?** Download **[MBF Tools](/mbftools)** — a free Quest app that guides you through every setup step (dev mode, wireless ADB, MBF launch) without needing a PC or terminal. See the [MBF Tools page](/mbftools) for the download and full instructions.
+:::
+
 ## Mods Before Friday
 Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** and downgrade to 1.37. Once its done, click mod my game and wait (it can take 1-15 mins). Once done you can select mods and install.
 
-*** 
+---
 
 ## MBF Launcher
-?> If you like videos better, [see my video](https://bsv.sm0ke.org)
+
+::: tip Video guide
+If you like videos better, [see my video](https://bsv.sm0ke.org).
+:::
+
 ### 1. Intro & Downloads
 1. Downloading the required APKs
-1. Open the web browser on your Quest .
+1. Open the web browser on your Quest.
 2. Open **https://bsmd.sm0ke.org/**.
     - When the site loads, tap **Download All**.
     - Your browser may warn about multiple downloads; allow it.
@@ -16,8 +25,8 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
     - These include **CX File Explorer**, **MBF Launcher** and **Dev Tools Opener**.
     - Once downloaded, you can close the browser.
 
-### 2. Installing APKs 
-1. Open the **Files app**(it is preinstalled on your headset).
+### 2. Installing APKs
+1. Open the **Files app** (it is preinstalled on your headset).
 2. Click on **downloads**.
 3. Tap the `...` next to **CX File Explorer**, click **package installer**, and install it:
     - Tap **Settings**, enable the option to allow installations from unknown sources, and tap **Install**.
@@ -34,8 +43,8 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
 
 ### 4. Using Dev Tools Opener to enable Developer Mode
 1. Launch **MBF Launcher** (but do not start modding yet).
-2. Open **Dev Tools Opener** and choose **Open Settings**. Then click `Open` on the window that pops up. 
-3. Go to **About Headset**. Scroll to the bottom and tap **Build Number** repeatedly until you see the message **“You are now a developer”**.
+2. Open **Dev Tools Opener** and choose **Open Settings**. Then click `Open` on the window that pops up.
+3. Go to **About Headset**. Scroll to the bottom and tap **Build Number** repeatedly until you see the message **"You are now a developer"**.
 4. Reopen the Dev Tools Opener window and select **Open Developer Settings**.
 5. Scroll to **Wireless Debugging** and toggle it **On**. Then click on the `Wireless Debugging` text.
 6. Tap `Pair with pairing code` and put the code the code shown into the MBF Launcher window.
@@ -57,7 +66,9 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
 3. Wait until each mod reports **successfully installed**.
 4. When finished, you can keep MBF open or close it.
 
-?> See [recommended mods here](/modsQuest).
+::: tip
+See [recommended mods here](/modsQuest).
+:::
 
 ### 7. Launching Beat Saber with mods
 1. Launch **Beat Saber** from the Quest menu.
@@ -68,26 +79,30 @@ Go to the **[MBF Website](https://lauriethefish.github.io/ModsBeforeFriday/)** a
     - More settings in **⚙️** → **Mod Settings**
     - **Custom Levels** or **Custom Songs** category in Solo mode.
 4. To download songs, use **Better Song Search**.
-5. Enjoy your modded Beat Saber! 
+5. Enjoy your modded Beat Saber!
 
+::: warning Problems?
+If you run into problems, take a screenshot of the error and contact us via [our Discord](https://d.sm0ke.org) or [go to our support page](/support/).
+:::
 
-!> If you run into problems, take a screenshot of the error and contact us via [our Discord](https://d.sm0ke.org) or [go to our support page](https://wiki.sm0ke.org/support).
+---
 
-*** 
- 
 ## Using QuestPatcher (OLD METHOD FOR 1.27)
-### Start by downloading QuestPatcher and a older version of Beat Saber on your computer:  
-**[QuestPatcher](https://github.com/Lauriethefish/QuestPatcher/releases/latest)**  
-**[Download BS (Broken)](https://meta.phazed.xyz/?bin_id=8838143419592875)**  
-### Then follow these instructions:  
- 
- 1. **Download and install QuestPatcher from [here](https://github.com/Lauriethefish/QuestPatcher/releases/latest)**  
- 
-     * *If you have ever used QuestPatcher before for any purpose, go to tools and click Quick Fix.*  
- 
- 2. **Patch Beat Saber (or repatch in the tools tab if you have already)**  
- 
-     * *Make sure Scotland2 is selected as the ModLoader.*  
- 
- 3. **Install the core mods, and other mods from [this page](https://mods.bsquest.xyz/)**  
-*** 
+
+### Start by downloading QuestPatcher and a older version of Beat Saber on your computer:
+**[QuestPatcher](https://github.com/Lauriethefish/QuestPatcher/releases/latest)**
+**[Download BS (Broken)](https://meta.phazed.xyz/?bin_id=8838143419592875)**
+
+### Then follow these instructions:
+
+1. **Download and install QuestPatcher from [here](https://github.com/Lauriethefish/QuestPatcher/releases/latest)**
+
+    - *If you have ever used QuestPatcher before for any purpose, go to tools and click Quick Fix.*
+
+2. **Patch Beat Saber (or repatch in the tools tab if you have already)**
+
+    - *Make sure Scotland2 is selected as the ModLoader.*
+
+3. **Install the core mods, and other mods from [this page](https://mods.bsquest.xyz/)**
+
+---

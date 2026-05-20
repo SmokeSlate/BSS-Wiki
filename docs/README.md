@@ -1,34 +1,55 @@
-<h1 class="hero-title">Welcome to the Beat Saber Modding Wiki!</h1> 
-<h1 class="hero-subtitle">This wiki is designed to help you learn how to mod Beat Saber!</h1><br>
+---
+layout: home
 
-<a href="/#/preQuest"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">Quest Guide</button></a> <a href="/#/prePC"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">PC Guide</button></a> <a href="/support"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">Support Chat</button></a> <a href="/fix"><button class="inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2">Troubleshooter</button></a><br><br>
+hero:
+  name: "Beat Saber Modding Wiki"
+  text: "Quest & PC modding guides"
+  tagline: "Custom songs, custom sabers, and mods — step by step."
+  image:
+    src: /assets/logo.png
+    alt: Beat Saber Modding Wiki
+  actions:
+    - theme: brand
+      text: Quest Guide
+      link: /preQuest
+    - theme: alt
+      text: PC Guide
+      link: /prePC
+    - theme: alt
+      text: Support Chat
+      link: /support/
+    - theme: alt
+      text: Troubleshooter
+      link: /fix/
 
-<div class="flex flex-col md:flex-row gap-2 justify-center mt-8">
-  <div class="bg-gray-800 rounded-xl p-8 min-w-[260px] flex-1">
-    <h2 class="text-xl font-semibold mb-4 text-white">Quest Modding</h2>
-    <ul class="space-y-2 text-grey-300">
-        <li><a href="/#/preQuest" class="hover:text-indigo-400">Getting Started</a></li>
-      <li><a href="/#/quest?id=Mods-Before-Friday" class="hover:text-indigo-400">Mods Before Friday</a></li>
-      <li><a href="/#/quest?id=MBF-Launcher" class="hover:text-indigo-400">MBF Launcher</a></li>
-      <li><a href="/#/modsQuest" class="hover:text-indigo-400">Recommended Mods and Mod Packs</a></li>
-    </ul>
-  </div>
-
-  <div class="bg-gray-800 rounded-xl p-8 min-w-[260px] flex-1">
-    <h2 class="text-xl font-semibold mb-4 text-white">PC Modding</h2>
-    <ul class="space-y-2 text-grey-300">
-      <li><a href="/#/prePC" class="hover:text-indigo-400">Getting Started</a></li>
-      <li><a href="/#/pc" class="hover:text-indigo-400">BSManager</a></li>
-      <li><a href="/#/modsPC" class="hover:text-indigo-400">Recommended Mods</a></li>
-    </ul>
-  </div>
-</div><br><br>
+features:
+  - icon: 🎮
+    title: Quest Modding
+    details: Mod Beat Saber on your Meta Quest headset — no PC required. MBF Launcher and MBF Tools handle the full setup flow.
+    link: /preQuest
+    linkText: Get started
+  - icon: 💻
+    title: PC Modding
+    details: Use BSManager to install and manage Beat Saber versions and mods on PC with ease.
+    link: /prePC
+    linkText: Get started
+  - icon: ❓
+    title: FAQ & Troubleshooting
+    details: Common questions and fixes for Beat Saber modding issues, including version swapping and uninstalling mods.
+    link: /faq
+    linkText: Read FAQ
+  - icon: 📦
+    title: MBF Tools App
+    details: A free on-headset app that guides you through developer mode, wireless ADB pairing, and launching MBF — all without a PC.
+    link: /mbftools
+    linkText: Learn more
+---
 
 ## Extra Resources
 
-- [My Discord](https://discord.gg/7qhYtJeRE9) - Join my Discord server for help and discussions about Beat Saber modding.
-- [Beat Saber Modding Discord](https://discord.gg/beatsabermods) - The official Discord server for Beat Saber modding, where you can find help and resources.
-- [Official Beat Saber Modding Wiki](https://bsmg.wiki/) - The official wiki for Beat Saber modding, maintained by community members.
-- [Qosmetics Discord](https://discord.gg/qosmetics) - Download Quest custom sabers, walls, and bloqs!
-- [BeatLeader](https:////beatleader.com) - Custom map leaderboards, replays, and statistics.
-- [ScoreSaber](https://scoresaber.com) - Custom map leaderboards.
+- [My Discord](https://discord.gg/7qhYtJeRE9) — Join for help and Beat Saber modding discussions.
+- [Beat Saber Modding Discord](https://discord.gg/beatsabermods) — The official BSMG Discord for modding help and resources.
+- [Official BSMG Wiki](https://bsmg.wiki/) — The community-maintained modding wiki.
+- [Qosmetics Discord](https://discord.gg/qosmetics) — Quest custom sabers, walls, and bloqs.
+- [BeatLeader](https://beatleader.com) — Custom map leaderboards, replays, and statistics.
+- [ScoreSaber](https://scoresaber.com) — Custom map leaderboards.

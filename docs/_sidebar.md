@@ -5,6 +5,7 @@
 * [Quest Modding](/quest.md)
   * [Mods Before Friday](/quest.md#Mods-Before-Friday)
   * [MBF Launcher](/quest.md#MBF-Launcher)
+  * [MBF Tools App](/mbftools.md)
   * [Recommended Mods](/modsQuest.md)
 * [PC](/pc.md)
   * [BSManager](/pc.md#BSManager)

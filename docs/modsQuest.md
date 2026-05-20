@@ -1,9 +1,11 @@
 # Recommended Mods for Quest
 
+---
 
-* * *
 ## 1.37.0
-**Main Pack** is recommended for most players: [Download Main Pack](/modPacks/mainModBundle.qmod ':ignore')   
+
+**Main Pack** is recommended for most players: [Download Main Pack](/modPacks/mainModBundle.qmod)
+
 It has:
 - **BeatLeader**
 - **BeatTogether**
@@ -25,6 +27,8 @@ It has:
 - **Slice Details**
 - **Song Chart Visualizer**
 
-* * * 
+---
+
 ## 1.40.8
-**Main Pack** is recommended for most players: [Download Main Pack](/modPacks/1.40.8/mods.qmod ':ignore')   
+
+**Main Pack** is recommended for most players: [Download Main Pack](/modPacks/1.40.8/mods.qmod)
