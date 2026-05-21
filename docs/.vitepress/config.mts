@@ -32,6 +32,8 @@ export default defineConfig({
     ['meta', { property: 'twitter:image', content: 'https://wiki.sm0ke.org/assets/logo.png' }],
     ['script', { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=G-NDRRR0YEW9' }],
     ['script', {}, `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NDRRR0YEW9');`],
+    // Redirect old Docsify hash routes (/#/quest → /quest, etc.)
+    ['script', {}, `(function(){var h=location.hash;if(h&&h.startsWith('#/')){location.replace(h.slice(1).split('?')[0]||'/');}})()`],
   ],
 
   themeConfig: {

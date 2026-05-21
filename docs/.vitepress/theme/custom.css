@@ -49,51 +49,55 @@
   border-bottom: 1px solid var(--vp-c-border) !important;
 }
 
-/* ── Search — make the button wider and more visible ─────────────────── */
+/* ── Search — VitePress local search button ───────────────────────────── */
+/* The local-search provider renders a button inside .VPNavBarSearch */
 .VPNavBarSearch {
-  flex: 1;
-  max-width: 280px;
+  flex-grow: 1;
+  justify-content: flex-start !important;
+  padding-left: 16px;
 }
 
-.DocSearch-Button {
-  width: 100% !important;
-  max-width: 260px !important;
-  border-radius: 8px !important;
-}
-
-/* Local search button */
-.VPNavBarSearch .search-root button,
-button.DocSearch {
-  width: 220px !important;
-  border-radius: 8px !important;
-  padding: 0 12px !important;
-  height: 36px !important;
-  background: rgba(76, 178, 255, 0.07) !important;
-  border: 1px solid rgba(76, 178, 255, 0.25) !important;
-  color: var(--vp-c-text-2) !important;
+/* The actual <button> VitePress renders for local search */
+.VPNavBarSearch > div > button,
+.VPNavBarSearch button {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
+  width: 210px !important;
+  height: 38px !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(76, 178, 255, 0.28) !important;
+  background: rgba(76, 178, 255, 0.06) !important;
+  color: var(--vp-c-text-2) !important;
   font-size: 0.9rem !important;
   cursor: pointer !important;
   transition: border-color 0.2s, background 0.2s !important;
 }
 
-button.DocSearch:hover,
-.VPNavBarSearch .search-root button:hover {
+.VPNavBarSearch > div > button:hover,
+.VPNavBarSearch button:hover {
   border-color: var(--vp-c-brand-1) !important;
   background: rgba(76, 178, 255, 0.12) !important;
 }
 
-/* Keyboard shortcut badge inside search button */
-.DocSearch-Button-Key,
-.search-keyboard-shortcuts kbd {
-  background: rgba(76, 178, 255, 0.15) !important;
+/* The placeholder text */
+.VPNavBarSearch button span.search-key-stroke,
+.VPNavBarSearch button .text {
+  flex: 1;
+}
+
+/* Ctrl K shortcut keys */
+.VPNavBarSearch button kbd,
+.VPNavBarSearch .search-keyboard-shortcuts kbd {
+  background: rgba(76, 178, 255, 0.12) !important;
   border: 1px solid rgba(76, 178, 255, 0.3) !important;
+  border-bottom-width: 2px !important;
   color: var(--vp-c-brand-1) !important;
   border-radius: 4px !important;
-  font-size: 0.7rem !important;
+  font-size: 0.68rem !important;
   padding: 1px 5px !important;
+  font-family: inherit !important;
 }
 
 /* ── Sidebar — closer to old Docsify feel ────────────────────────────── */
