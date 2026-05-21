@@ -17,10 +17,10 @@ hero:
       link: /prePC
     - theme: alt
       text: Support Chat
-      link: /support/
+      link: https://wiki.sm0ke.org/support/
     - theme: alt
       text: Troubleshooter
-      link: /fix/
+      link: https://wiki.sm0ke.org/fix/
 
 features:
   - icon: 🎮

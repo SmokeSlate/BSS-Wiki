@@ -50,7 +50,7 @@ Need to swap versions to get custom sabers or play certain mods? Follow this!
 
 ### Contact
 
-When you ask support (at the [Discord](https://d.sm0ke.org/) or at the [support chat](/support/)) you should include the following:
+When you ask support (at the [Discord](https://d.sm0ke.org/) or at the [support chat]( https://wiki.sm0ke.org/support/)) you should include the following:
 
 - Headset (Quest 2, 3, 3s)
 - Version (1.37.0, 1.40.8, etc.) — look down in the main menu to find it

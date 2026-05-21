@@ -82,7 +82,7 @@ See [recommended mods here](/modsQuest).
 5. Enjoy your modded Beat Saber!
 
 ::: warning Problems?
-If you run into problems, take a screenshot of the error and contact us via [our Discord](https://d.sm0ke.org) or [go to our support page](/support/).
+If you run into problems, take a screenshot of the error and contact us via [our Discord](https://d.sm0ke.org) or [go to our support page]( https://wiki.sm0ke.org/support/).
 :::
 
 ---

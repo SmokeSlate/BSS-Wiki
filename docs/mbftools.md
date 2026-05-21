@@ -68,7 +68,7 @@ Once paired, tap **Launch MBF In This App**. The MBF mod loader opens inside the
 - Ensure the ADB connection is established (green status) before tapping Launch.
 - If the status shows "Not connected," tap **Refresh Connection** or re-run pairing.
 
-For any other issues, use the **Share Debug Logs** button inside the app to generate a support code, then post it in [Discord](https://d.sm0ke.org) or the [Support Chat](/support/).
+For any other issues, use the **Share Debug Logs** button inside the app to generate a support code, then post it in [Discord](https://d.sm0ke.org) or the [Support Chat]( https://wiki.sm0ke.org/support/).
 
 ---
 
