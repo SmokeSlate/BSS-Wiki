@@ -1,46 +1,42 @@
-/* ── Palette ──────────────────────────────────────────────────────────── */
+/* ── Brand tokens (dark-mode only site) ──────────────────────────────── */
 :root {
   --vp-c-brand-1: #4CB2FF;
   --vp-c-brand-2: #3a9ee8;
   --vp-c-brand-3: #2a8ad4;
   --vp-c-brand-soft: rgba(76, 178, 255, 0.12);
+}
 
-  --vp-c-bg: #08111F;
-  --vp-c-bg-soft: #0e1e30;
-  --vp-c-bg-mute: #0d1e33;
-  --vp-c-bg-elv: #0f1b2d;
+/* Dark palette — applied via .dark which VitePress adds when appearance:force-dark */
+.dark {
+  --vp-c-bg:       #08111F;
+  --vp-c-bg-soft:  #0e1e30;
+  --vp-c-bg-mute:  #0d1e33;
+  --vp-c-bg-elv:   #0f1b2d;
 
   --vp-c-text-1: #F6FBFF;
   --vp-c-text-2: #BCD1E8;
   --vp-c-text-3: #90A9C5;
 
-  --vp-c-border: rgba(76, 178, 255, 0.18);
-  --vp-c-divider: rgba(76, 178, 255, 0.12);
+  --vp-c-border:   rgba(76, 178, 255, 0.18);
+  --vp-c-divider:  rgba(76, 178, 255, 0.12);
 
-  --vp-c-tip-1: #4CB2FF;
-  --vp-c-tip-2: #4CB2FF;
+  --vp-c-tip-1:    #4CB2FF;
+  --vp-c-tip-2:    #4CB2FF;
   --vp-c-tip-soft: rgba(76, 178, 255, 0.08);
 
-  --vp-c-warning-1: #F2C94E;
-  --vp-c-warning-2: #F2C94E;
+  --vp-c-warning-1:    #F2C94E;
+  --vp-c-warning-2:    #F2C94E;
   --vp-c-warning-soft: rgba(242, 201, 78, 0.08);
 
-  --vp-c-danger-1: #F24E5E;
-  --vp-c-danger-2: #F24E5E;
+  --vp-c-danger-1:    #F24E5E;
+  --vp-c-danger-2:    #F24E5E;
   --vp-c-danger-soft: rgba(242, 78, 94, 0.08);
 
-  --vp-nav-bg-color: rgba(8, 17, 31, 0.9);
-  --vp-sidebar-bg-color: #080f1a;
+  --vp-nav-bg-color:      rgba(8, 17, 31, 0.9);
+  --vp-sidebar-bg-color:  #080f1a;
 
-  --vp-code-bg: #0d1e30;
+  --vp-code-bg:    #0d1e30;
   --vp-code-color: #BCD1E8;
-}
-
-.dark {
-  --vp-c-bg: #08111F;
-  --vp-c-bg-soft: #0e1e30;
-  --vp-c-bg-mute: #0d1e33;
-  --vp-c-bg-elv: #0f1b2d;
 }
 
 /* ── Nav ──────────────────────────────────────────────────────────────── */
@@ -50,14 +46,12 @@
 }
 
 /* ── Search — VitePress local search button ───────────────────────────── */
-/* The local-search provider renders a button inside .VPNavBarSearch */
 .VPNavBarSearch {
   flex-grow: 1;
   justify-content: flex-start !important;
   padding-left: 16px;
 }
 
-/* The actual <button> VitePress renders for local search */
 .VPNavBarSearch > div > button,
 .VPNavBarSearch button {
   display: flex !important;
@@ -81,13 +75,6 @@
   background: rgba(76, 178, 255, 0.12) !important;
 }
 
-/* The placeholder text */
-.VPNavBarSearch button span.search-key-stroke,
-.VPNavBarSearch button .text {
-  flex: 1;
-}
-
-/* Ctrl K shortcut keys */
 .VPNavBarSearch button kbd,
 .VPNavBarSearch .search-keyboard-shortcuts kbd {
   background: rgba(76, 178, 255, 0.12) !important;
@@ -100,28 +87,26 @@
   font-family: inherit !important;
 }
 
-/* ── Sidebar — closer to old Docsify feel ────────────────────────────── */
+/* ── Sidebar ──────────────────────────────────────────────────────────── */
 .VPSidebar {
   border-right: 1px solid var(--vp-c-border) !important;
   padding-top: 0 !important;
 }
 
-/* Logo area at top of sidebar */
 .VPSidebarNav {
   padding-top: 12px !important;
 }
 
-/* Section headers — lighter weight, smaller, closer to plain text */
+/* Section header labels */
 .VPSidebarItem.level-0 > .item > .text {
   font-size: 0.82rem !important;
   font-weight: 700 !important;
   letter-spacing: 0.04em !important;
   text-transform: uppercase !important;
   color: var(--vp-c-text-3) !important;
-  margin-top: 4px !important;
 }
 
-/* Section header that is also a link — show as normal link color */
+/* Section header that's also a link */
 .VPSidebarItem.level-0 > .item > .link .text {
   font-size: 0.92rem !important;
   font-weight: 600 !important;
@@ -130,7 +115,7 @@
   color: var(--vp-c-text-2) !important;
 }
 
-/* Child items — tighter spacing, like Docsify */
+/* Child items */
 .VPSidebarItem.level-1 > .item {
   padding: 3px 0 3px 12px !important;
 }
@@ -144,14 +129,14 @@
   color: var(--vp-c-brand-1) !important;
 }
 
-/* Active item highlight */
+/* Active item */
 .VPSidebarItem.is-active > .item .link,
 .VPSidebarItem.is-active > .item .link .text {
   color: var(--vp-c-brand-1) !important;
   font-weight: 600 !important;
 }
 
-/* Divider between sections — subtle line like Docsify */
+/* Dividers between sections */
 .VPSidebarItem.level-0 {
   border-top: 1px solid var(--vp-c-divider);
   margin-top: 6px !important;
@@ -163,7 +148,7 @@
   margin-top: 0 !important;
 }
 
-/* Home link (first item) — make it stand out slightly */
+/* Home link */
 .VPSidebarItem.level-0:first-child > .item .link .text {
   font-size: 0.92rem !important;
   font-weight: 600 !important;
@@ -180,7 +165,6 @@
   background-clip: text;
 }
 
-/* Logo in nav */
 .VPNavBarTitle .logo {
   border-radius: 8px;
 }

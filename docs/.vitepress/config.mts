@@ -8,6 +8,9 @@ export default defineConfig({
   srcDir: '.',
   outDir: '../dist',
 
+  // Always dark — site is designed as dark-only
+  appearance: 'force-dark',
+
   srcExclude: ['support.md', '_sidebar.md'],
 
   ignoreDeadLinks: [

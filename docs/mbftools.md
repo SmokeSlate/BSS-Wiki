@@ -10,7 +10,7 @@
 
 Open the Quest browser and visit:
 
-**[smokeslate.github.io/MBF-Tools](https://smokeslate.github.io/MBF-Tools)**
+**[mbf.tools](https://mbf.tools)**
 
 Tap **Download APK**, then install it through your Quest's file manager.
 
@@ -34,7 +34,7 @@ Tap **Download APK**, then install it through your Quest's file manager.
 ### 1. Install MBF Tools
 
 1. Open the web browser on your Quest.
-2. Go to **https://smokeslate.github.io/MBF-Tools** and tap **Download APK**.
+2. Go to **https://mbf.tools** and tap **Download APK**.
 3. Open the **Files** app, tap **Downloads**, tap the `...` next to the APK, and choose **Package installer**.
 4. Enable unknown sources when prompted and tap **Install**.
 5. Find **MBF Tools and Setup** under **Unknown Sources** in your app library.
@@ -74,6 +74,7 @@ For any other issues, use the **Share Debug Logs** button inside the app to gene
 
 ## Source & releases
 
+- **Site:** [mbf.tools](https://mbf.tools)
 - **GitHub:** [github.com/SmokeSlate/MBF-Tools](https://github.com/SmokeSlate/MBF-Tools)
 - **Latest release:** [github.com/SmokeSlate/MBF-Tools/releases/latest](https://github.com/SmokeSlate/MBF-Tools/releases/latest)
 - Licensed under MIT.
