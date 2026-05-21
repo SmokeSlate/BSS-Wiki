@@ -1,5 +1,4 @@
-/* Custom theme — matches the dark-blue Beat Saber Modding palette */
-
+/* ── Palette ──────────────────────────────────────────────────────────── */
 :root {
   --vp-c-brand-1: #4CB2FF;
   --vp-c-brand-2: #3a9ee8;
@@ -8,52 +7,168 @@
 
   --vp-c-bg: #08111F;
   --vp-c-bg-soft: #0e1e30;
-  --vp-c-bg-mute: #13335B;
+  --vp-c-bg-mute: #0d1e33;
   --vp-c-bg-elv: #0f1b2d;
 
   --vp-c-text-1: #F6FBFF;
   --vp-c-text-2: #BCD1E8;
   --vp-c-text-3: #90A9C5;
 
-  --vp-c-border: rgba(76, 178, 255, 0.2);
-  --vp-c-divider: rgba(76, 178, 255, 0.15);
+  --vp-c-border: rgba(76, 178, 255, 0.18);
+  --vp-c-divider: rgba(76, 178, 255, 0.12);
 
   --vp-c-tip-1: #4CB2FF;
   --vp-c-tip-2: #4CB2FF;
-  --vp-c-tip-soft: rgba(76, 178, 255, 0.1);
+  --vp-c-tip-soft: rgba(76, 178, 255, 0.08);
 
   --vp-c-warning-1: #F2C94E;
   --vp-c-warning-2: #F2C94E;
-  --vp-c-warning-soft: rgba(242, 201, 78, 0.1);
+  --vp-c-warning-soft: rgba(242, 201, 78, 0.08);
 
   --vp-c-danger-1: #F24E5E;
   --vp-c-danger-2: #F24E5E;
-  --vp-c-danger-soft: rgba(242, 78, 94, 0.1);
+  --vp-c-danger-soft: rgba(242, 78, 94, 0.08);
 
-  /* Nav */
-  --vp-nav-bg-color: rgba(8, 17, 31, 0.85);
-  --vp-sidebar-bg-color: #0a1625;
+  --vp-nav-bg-color: rgba(8, 17, 31, 0.9);
+  --vp-sidebar-bg-color: #080f1a;
 
-  /* Code blocks */
   --vp-code-bg: #0d1e30;
   --vp-code-color: #BCD1E8;
 }
 
-/* Force dark mode background always */
 .dark {
   --vp-c-bg: #08111F;
   --vp-c-bg-soft: #0e1e30;
-  --vp-c-bg-mute: #13335B;
+  --vp-c-bg-mute: #0d1e33;
   --vp-c-bg-elv: #0f1b2d;
 }
 
-/* Nav */
+/* ── Nav ──────────────────────────────────────────────────────────────── */
 .VPNav {
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--vp-c-border);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--vp-c-border) !important;
 }
 
-/* Hero (home page) */
+/* ── Search — make the button wider and more visible ─────────────────── */
+.VPNavBarSearch {
+  flex: 1;
+  max-width: 280px;
+}
+
+.DocSearch-Button {
+  width: 100% !important;
+  max-width: 260px !important;
+  border-radius: 8px !important;
+}
+
+/* Local search button */
+.VPNavBarSearch .search-root button,
+button.DocSearch {
+  width: 220px !important;
+  border-radius: 8px !important;
+  padding: 0 12px !important;
+  height: 36px !important;
+  background: rgba(76, 178, 255, 0.07) !important;
+  border: 1px solid rgba(76, 178, 255, 0.25) !important;
+  color: var(--vp-c-text-2) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 0.9rem !important;
+  cursor: pointer !important;
+  transition: border-color 0.2s, background 0.2s !important;
+}
+
+button.DocSearch:hover,
+.VPNavBarSearch .search-root button:hover {
+  border-color: var(--vp-c-brand-1) !important;
+  background: rgba(76, 178, 255, 0.12) !important;
+}
+
+/* Keyboard shortcut badge inside search button */
+.DocSearch-Button-Key,
+.search-keyboard-shortcuts kbd {
+  background: rgba(76, 178, 255, 0.15) !important;
+  border: 1px solid rgba(76, 178, 255, 0.3) !important;
+  color: var(--vp-c-brand-1) !important;
+  border-radius: 4px !important;
+  font-size: 0.7rem !important;
+  padding: 1px 5px !important;
+}
+
+/* ── Sidebar — closer to old Docsify feel ────────────────────────────── */
+.VPSidebar {
+  border-right: 1px solid var(--vp-c-border) !important;
+  padding-top: 0 !important;
+}
+
+/* Logo area at top of sidebar */
+.VPSidebarNav {
+  padding-top: 12px !important;
+}
+
+/* Section headers — lighter weight, smaller, closer to plain text */
+.VPSidebarItem.level-0 > .item > .text {
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  color: var(--vp-c-text-3) !important;
+  margin-top: 4px !important;
+}
+
+/* Section header that is also a link — show as normal link color */
+.VPSidebarItem.level-0 > .item > .link .text {
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: var(--vp-c-text-2) !important;
+}
+
+/* Child items — tighter spacing, like Docsify */
+.VPSidebarItem.level-1 > .item {
+  padding: 3px 0 3px 12px !important;
+}
+
+.VPSidebarItem.level-1 > .item .link {
+  font-size: 0.88rem !important;
+  color: var(--vp-c-text-2) !important;
+}
+
+.VPSidebarItem.level-1 > .item .link:hover {
+  color: var(--vp-c-brand-1) !important;
+}
+
+/* Active item highlight */
+.VPSidebarItem.is-active > .item .link,
+.VPSidebarItem.is-active > .item .link .text {
+  color: var(--vp-c-brand-1) !important;
+  font-weight: 600 !important;
+}
+
+/* Divider between sections — subtle line like Docsify */
+.VPSidebarItem.level-0 {
+  border-top: 1px solid var(--vp-c-divider);
+  margin-top: 6px !important;
+  padding-top: 6px !important;
+}
+
+.VPSidebarItem.level-0:first-child {
+  border-top: none !important;
+  margin-top: 0 !important;
+}
+
+/* Home link (first item) — make it stand out slightly */
+.VPSidebarItem.level-0:first-child > .item .link .text {
+  font-size: 0.92rem !important;
+  font-weight: 600 !important;
+  color: var(--vp-c-text-1) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
 .VPHero .name {
   background: linear-gradient(120deg, #4CB2FF 30%, #F24E5E);
   -webkit-background-clip: text;
@@ -61,17 +176,12 @@
   background-clip: text;
 }
 
-/* Logo */
+/* Logo in nav */
 .VPNavBarTitle .logo {
   border-radius: 8px;
 }
 
-/* Sidebar active item */
-.VPSidebarItem.is-active > .item .link {
-  color: var(--vp-c-brand-1);
-}
-
-/* Custom container tip/warning/danger */
+/* ── Custom containers ────────────────────────────────────────────────── */
 .custom-block.tip {
   border-color: var(--vp-c-brand-1);
   background-color: var(--vp-c-tip-soft);
@@ -87,7 +197,7 @@
   background-color: var(--vp-c-danger-soft);
 }
 
-/* Table styling */
+/* ── Tables ───────────────────────────────────────────────────────────── */
 table {
   display: table;
   width: 100%;
@@ -102,10 +212,4 @@ th {
 td, th {
   border: 1px solid var(--vp-c-border);
   padding: 0.5rem 0.75rem;
-}
-
-/* Home page button overrides (Tailwind coexists) */
-.btn-primary {
-  background: var(--vp-c-brand-1);
-  color: #08111F;
 }
