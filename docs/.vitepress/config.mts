@@ -13,6 +13,7 @@ export default defineConfig({
 
   srcExclude: ['support.md', '_sidebar.md'],
 
+
   ignoreDeadLinks: [
     /\/modPacks\//,
     /\/support/,
@@ -24,7 +25,6 @@ export default defineConfig({
     ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' }],
     ['link', { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' }],
     ['link', { rel: 'manifest', href: '/site.webmanifest' }],
-    ['script', { src: '//cdn.tailwindcss.com' }],
     ['meta', { name: 'keywords', content: 'modding, beat saber, meta, oculus, quest 3, quest 2, quest 3s, wiki, tutorial, vr, game, custom, maps, custom sabers, custom maps, mods, standalone, no pc, pc, MBF, MBF Tools' }],
     ['meta', { name: 'robots', content: 'index, follow' }],
     ['meta', { name: 'author', content: 'Sm0ke' }],
