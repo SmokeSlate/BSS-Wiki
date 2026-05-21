@@ -170,6 +170,9 @@
 
 .VPNavBarTitle .logo {
   border-radius: 8px;
+  filter: none !important;
+  box-shadow: none !important;
+  image-rendering: auto;
 }
 
 /* ── Custom containers ────────────────────────────────────────────────── */

@@ -47,7 +47,7 @@ export default defineConfig({
       { text: 'Quest', link: '/preQuest' },
       { text: 'PC', link: '/prePC' },
       { text: 'FAQ', link: '/faq' },
-      { text: 'Support Chat', link: '/support/' },
+      { text: 'Support Chat', link: 'https://wiki.sm0ke.org/support/' },
       { text: 'Discord', link: 'https://d.sm0ke.org' },
     ],
 
@@ -83,7 +83,7 @@ export default defineConfig({
         text: 'Support',
         items: [
           { text: 'FAQ', link: '/faq' },
-          { text: 'Support Chat', link: '/support/' },
+          { text: 'Support Chat', link: 'https://wiki.sm0ke.org/support/' },
           { text: 'Discord ↗', link: 'https://d.sm0ke.org' },
         ],
       },
