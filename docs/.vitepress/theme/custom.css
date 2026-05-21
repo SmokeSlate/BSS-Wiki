@@ -39,6 +39,9 @@
   --vp-code-color: #BCD1E8;
 }
 
+/* ── Hide light/dark toggle (force-dark site) ─────────────────────────── */
+.VPNavBarAppearance { display: none !important; }
+
 /* ── Nav ──────────────────────────────────────────────────────────────── */
 .VPNav {
   backdrop-filter: blur(10px);
