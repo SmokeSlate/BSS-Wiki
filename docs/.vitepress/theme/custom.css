@@ -48,15 +48,18 @@
   border-bottom: 1px solid var(--vp-c-border) !important;
 }
 
-/* ── Search — VitePress local search button ───────────────────────────── */
+/* ── Search button ────────────────────────────────────────────────────── */
 .VPNavBarSearch {
   flex-grow: 1;
   justify-content: flex-start !important;
   padding-left: 16px;
 }
 
+/* Local search (VitePress built-in) */
 .VPNavBarSearch > div > button,
-.VPNavBarSearch button {
+.VPNavBarSearch button,
+/* Algolia DocSearch */
+.DocSearch.DocSearch-Button {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
@@ -73,13 +76,15 @@
 }
 
 .VPNavBarSearch > div > button:hover,
-.VPNavBarSearch button:hover {
+.VPNavBarSearch button:hover,
+.DocSearch.DocSearch-Button:hover {
   border-color: var(--vp-c-brand-1) !important;
   background: rgba(76, 178, 255, 0.12) !important;
 }
 
 .VPNavBarSearch button kbd,
-.VPNavBarSearch .search-keyboard-shortcuts kbd {
+.VPNavBarSearch .search-keyboard-shortcuts kbd,
+.DocSearch-Button-Key {
   background: rgba(76, 178, 255, 0.12) !important;
   border: 1px solid rgba(76, 178, 255, 0.3) !important;
   border-bottom-width: 2px !important;
