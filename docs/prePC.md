@@ -1,4 +1,4 @@
-## PC Preparations  
+# PC Preparations  
  - **A VR capable computer** check online or from where you bought your computer
  - **A long cable (recommended)** or good WiFi if you're using a oculus
  - **A VR headset (Oculus or PCVR)** this can be a rift or Quest 2,3, or 3s
