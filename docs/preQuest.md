@@ -1,4 +1,9 @@
-## Quest Preparations (With PC)
+# Quest Modding Preparations
+# Standalone Preparations
+
+There is **no** preparations needed for standalone. Continue at [quest standalone docs](/quest#mbf-launcher).
+* * *
+## Quest Preparations using PC/MBF
 To mod your game, you'll need to activate Developer Mode on your Quest.
 
 ::: warning Multiple Accounts
@@ -24,7 +29,3 @@ If you haven't done this already, follow the steps below:
 Continue at [the quest docs](/quest#mbf-browser).
 
 ---
-
-# Quest Preparations (Standalone)
-
-There is **no** preparations needed for standalone. Continue at [quest standalone docs](/quest#mbf-launcher).
