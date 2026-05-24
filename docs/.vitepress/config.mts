@@ -41,7 +41,7 @@ export default defineConfig({
 
   themeConfig: {
     logo: '/assets/logo.png',
-    siteTitle: 'BSS Wiki',
+    siteTitle: 'Beat Saber Standalone Wiki',
 
     nav: [
       { text: 'Quest', link: '/preQuest' },
@@ -53,7 +53,6 @@ export default defineConfig({
 
     // Flat sidebar — closer to the original Docsify layout
     sidebar: [
-      { text: '🏠 Home', link: '/' },
       {
         text: 'Preparations',
         items: [
@@ -100,9 +99,6 @@ export default defineConfig({
 
     search: {
       provider: 'local',
-      options: {
-        placeholder: 'Search the wiki…',
-      },
     },
 
     footer: {
