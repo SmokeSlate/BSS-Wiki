@@ -212,6 +212,53 @@ td, th {
   border: 1px solid var(--vp-c-border);
   padding: 0.5rem 0.75rem;
 }
+
+/* ── Prevent horizontal scroll ────────────────────────────────────────── */
+html, body { overflow-x: hidden; }
+
+/* Tables scroll horizontally on small screens instead of overflowing */
+.vp-doc table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+/* ── Mobile nav search width ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .VPNavBarSearch {
+    padding-left: 8px;
+  }
+
+  .VPNavBarSearch > div > button,
+  .VPNavBarSearch button,
+  .DocSearch.DocSearch-Button {
+    width: 160px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .VPNavBarSearch > div > button,
+  .VPNavBarSearch button,
+  .DocSearch.DocSearch-Button {
+    width: 120px !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+/* ── Hero image on mobile ────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .VPHero .image-container {
+    max-width: 180px !important;
+    margin: 0 auto;
+  }
+
+  .VPHero .name,
+  .VPHero .text {
+    font-size: clamp(1.6rem, 8vw, 2.4rem) !important;
+  }
+}
+
 .sidebar-top-logo {
   margin-top: 40px;
 }
