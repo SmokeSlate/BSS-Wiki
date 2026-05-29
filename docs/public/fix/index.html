@@ -76,66 +76,97 @@
     </style>
   </head>
   <body class="min-h-screen bg-gray-900 text-white">
-    <main class="max-w-5xl mx-auto px-4 py-10 text-center">
-      <img src="/assets/logo.png" alt="Beat Saber Wiki" class="h-20 w-20 rounded-xl mx-auto mb-5" />
-      <h1 class="text-4xl font-bold">Beat Saber Troubleshooter</h1>
-      <p class="text-xl text-gray-300 mt-3">Choose your version and follow the form.</p>
-      <p id="loaded-at" class="text-xs text-gray-500 mt-3">Loading form...</p>
+    <main class="max-w-5xl mx-auto px-4 py-10">
+      <div class="text-center">
+        <img src="/assets/logo.png" alt="Beat Saber Wiki" class="h-20 w-20 rounded-xl mx-auto mb-5" />
+        <h1 class="text-4xl font-bold" id="page-title">Beat Saber Troubleshooter</h1>
+        <p class="text-xl text-gray-300 mt-3" id="page-subtitle">Choose your version and follow the form.</p>
+        <p id="loaded-at" class="text-xs text-gray-500 mt-3">Loading form...</p>
+      </div>
 
       <div id="diagnose-section" class="hidden mt-8 text-left"></div>
 
-      <div
-        id="status"
-        class="hidden mb-6 mt-6 rounded-xl border px-4 py-3 text-sm text-left"
-        role="status"
-        aria-live="polite"
-      ></div>
-
-      <div id="runtime" class="mt-8"></div>
+      <div id="troubleshooter-wrap" class="mt-8">
+        <div
+          id="status"
+          class="hidden mb-6 rounded-xl border px-4 py-3 text-sm text-left"
+          role="status"
+          aria-live="polite"
+        ></div>
+        <div id="runtime"></div>
+      </div>
     </main>
 
     <script>
       (function bootstrapDiagnose() {
         var LOGS_API = "https://logs.sm0ke.org";
         var section = document.getElementById("diagnose-section");
+        var tsWrap = document.getElementById("troubleshooter-wrap");
+        var pageTitle = document.getElementById("page-title");
+        var pageSubtitle = document.getElementById("page-subtitle");
 
         var params = new URLSearchParams(window.location.search);
         var logCode = (params.get("log") || "").trim().toLowerCase();
         if (!logCode) return;
 
+        // Switch the page into diagnosis mode
+        pageTitle.textContent = "AI Diagnosis";
+        pageSubtitle.textContent = "Analyzing log " + logCode + " — results appear below.";
         section.classList.remove("hidden");
         section.innerHTML = renderCard("loading", logCode);
 
-        fetch(LOGS_API + "/diagnose/" + encodeURIComponent(logCode), { signal: AbortSignal.timeout(35000) })
-          .then(function (res) { return res.json(); })
-          .then(function (data) {
-            if (!data.ok) throw new Error(data.error || "Diagnosis failed.");
-            section.innerHTML = renderCard("done", logCode, data.diagnosis);
-          })
-          .catch(function (err) {
-            section.innerHTML = renderCard("error", logCode, null, err.message || "Could not complete diagnosis.");
-          });
+        // Collapse the troubleshooter behind a toggle — it's secondary here
+        tsWrap.innerHTML =
+          '<details class="mt-10 group">' +
+            '<summary class="cursor-pointer text-sm text-gray-500 hover:text-gray-300 select-none list-none flex items-center gap-2">' +
+              '<svg class="h-4 w-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' +
+              'Open interactive troubleshooter' +
+            '</summary>' +
+            '<div id="ts-inner" class="mt-4">' +
+              '<div id="status" class="hidden mb-6 rounded-xl border px-4 py-3 text-sm text-left" role="status" aria-live="polite"></div>' +
+              '<div id="runtime"></div>' +
+            '</div>' +
+          '</details>';
+
+        doFetch(logCode);
+
+        function doFetch(code) {
+          fetch(LOGS_API + "/diagnose/" + encodeURIComponent(code), { signal: AbortSignal.timeout(40000) })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+              if (!data.ok) throw new Error(data.error || "Diagnosis failed.");
+              section.innerHTML = renderCard("done", code, data.diagnosis);
+            })
+            .catch(function (err) {
+              section.innerHTML = renderCard("error", code, null, err.message || "Could not complete diagnosis.");
+            });
+        }
 
         function renderCard(state, code, diagnosis, errorMsg) {
           var logsUrl = LOGS_API + "/" + encodeURIComponent(code);
-          var diagUrl = LOGS_API + "/diagnose/" + encodeURIComponent(code);
 
           var header =
-            '<div class="flex items-start justify-between gap-4 mb-4">' +
+            '<div class="flex items-start justify-between gap-4 mb-5">' +
               '<div>' +
-                '<h2 class="text-2xl font-bold text-white">AI Diagnosis</h2>' +
-                '<p class="text-sm text-gray-400 mt-1">Log code: <code class="bg-gray-900 border border-gray-700 rounded px-1">' + escapeHtml(code) + '</code></p>' +
+                '<p class="text-xs text-gray-500 uppercase tracking-widest mb-1">AI Diagnosis</p>' +
+                '<p class="text-sm text-gray-400">Log: <code class="bg-gray-900 border border-gray-700 rounded px-1.5 py-0.5">' + escapeHtml(code) + '</code></p>' +
               '</div>' +
-              '<a href="' + escapeHtml(logsUrl) + '" target="_blank" rel="noopener" class="shrink-0 text-xs text-indigo-400 underline underline-offset-2 hover:text-indigo-300 mt-1">View full logs →</a>' +
+              '<a href="' + escapeHtml(logsUrl) + '" target="_blank" rel="noopener" ' +
+                'class="shrink-0 text-xs text-indigo-400 underline underline-offset-2 hover:text-indigo-300 mt-1">' +
+                'View raw logs →' +
+              '</a>' +
             '</div>';
 
           if (state === "loading") {
             return (
-              '<div class="rounded-xl border border-indigo-400/20 bg-indigo-500/5 px-6 py-5">' +
+              '<div class="rounded-xl border border-indigo-400/20 bg-indigo-500/5 px-6 py-6">' +
                 header +
-                '<div class="flex items-center gap-3 text-indigo-300 text-sm">' +
-                  '<svg class="animate-spin h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>' +
-                  '<span>Analyzing your logs with AI — this may take up to 30 seconds…</span>' +
+                '<div class="flex items-center gap-3 text-indigo-200 text-sm">' +
+                  '<svg class="animate-spin h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24">' +
+                    '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>' +
+                    '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>' +
+                  '</svg>' +
+                  '<span>Reading your logs and generating a diagnosis — up to 30 seconds…</span>' +
                 '</div>' +
               '</div>'
             );
@@ -143,10 +174,16 @@
 
           if (state === "error") {
             return (
-              '<div class="rounded-xl border border-rose-400/30 bg-rose-500/10 px-6 py-5">' +
+              '<div class="rounded-xl border border-rose-400/30 bg-rose-500/10 px-6 py-6">' +
                 header +
                 '<p class="text-rose-300 text-sm">' + escapeHtml(errorMsg || "Unknown error") + '</p>' +
-                '<p class="text-gray-500 text-xs mt-3">You can still <a href="' + escapeHtml(logsUrl) + '" target="_blank" rel="noopener" class="text-indigo-400 underline">view your logs manually</a> or try the <a href="' + escapeHtml(diagUrl) + '" target="_blank" rel="noopener" class="text-indigo-400 underline">diagnose endpoint</a> directly.</p>' +
+                '<div class="mt-4 flex flex-wrap gap-3 text-xs">' +
+                  '<button type="button" onclick="rerunDiagnose()" ' +
+                    'class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">Try again</button>' +
+                  '<span class="text-gray-600">·</span>' +
+                  '<a href="' + escapeHtml(logsUrl) + '" target="_blank" rel="noopener" ' +
+                    'class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">View raw logs</a>' +
+                '</div>' +
               '</div>'
             );
           }
@@ -156,13 +193,15 @@
             : "<pre class=\"whitespace-pre-wrap text-sm\">" + escapeHtml(diagnosis || "") + "</pre>";
 
           return (
-            '<div class="rounded-xl border border-indigo-400/20 bg-gray-800 px-6 py-5">' +
+            '<div class="rounded-xl border border-indigo-400/20 bg-gray-800 px-6 py-6">' +
               header +
-              '<div class="md-copy text-gray-200 text-sm leading-relaxed">' + diagHtml + '</div>' +
-              '<div class="mt-5 pt-4 border-t border-gray-700 flex flex-wrap gap-3 text-xs">' +
-                '<a href="' + escapeHtml(logsUrl) + '" target="_blank" rel="noopener" class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">Full log viewer</a>' +
+              '<div class="md-copy text-gray-100 text-sm leading-relaxed">' + diagHtml + '</div>' +
+              '<div class="mt-6 pt-4 border-t border-gray-700 flex flex-wrap gap-4 text-xs">' +
+                '<a href="' + escapeHtml(logsUrl) + '" target="_blank" rel="noopener" ' +
+                  'class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">View raw logs</a>' +
                 '<span class="text-gray-600">·</span>' +
-                '<button type="button" onclick="rerunDiagnose()" class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">Re-run diagnosis</button>' +
+                '<button type="button" onclick="rerunDiagnose()" ' +
+                  'class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">Re-run diagnosis</button>' +
               '</div>' +
             '</div>'
           );
@@ -174,15 +213,7 @@
 
         window.rerunDiagnose = function () {
           section.innerHTML = renderCard("loading", logCode);
-          fetch(LOGS_API + "/diagnose/" + encodeURIComponent(logCode), { signal: AbortSignal.timeout(35000) })
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
-              if (!data.ok) throw new Error(data.error || "Diagnosis failed.");
-              section.innerHTML = renderCard("done", logCode, data.diagnosis);
-            })
-            .catch(function (err) {
-              section.innerHTML = renderCard("error", logCode, null, err.message || "Could not complete diagnosis.");
-            });
+          doFetch(logCode);
         };
       })();
     </script>
