@@ -1,17 +1,17 @@
 {
   "title": "Beat Saber Troubleshooter",
   "description": "",
-  "intro": "",
+  "intro": "Pick the step you're stuck on and follow the questions. If nothing here solves it, contact support at the bottom of any result.",
   "supportChecklist": [
-    "Beat Saber version",
-    "Headset or PC setup",
+    "Beat Saber version (1.37, 1.40.8, etc.)",
+    "Headset model (Quest 2, 3, 3s) or PC",
     "What changed before it broke",
-    "Screenshot of the error"
+    "Screenshot of the error or what you see"
   ],
   "quickLinks": [
     {
-      "label": "FAQ (READ FIRST)",
-      "href": "/#/faq"
+      "label": "FAQ (read first)",
+      "href": "/faq"
     },
     {
       "label": "Support Chat",
@@ -19,39 +19,33 @@
     }
   ],
   "root": {
-    "title": "What step are you on?",
+    "title": "What step are you stuck on?",
     "image": "",
-    "question": "",
-    "details": "",
+    "question": "Choose the stage that best matches your problem.",
+    "details": "If you are not sure, start at the beginning — Downloading APKs — and work forward.",
     "choices": [
       {
         "label": "Downloading APKs",
-        "description": "",
-        "result": {
-          "title": "New result",
-          "image": "",
-          "summary": "Explain the outcome.",
-          "steps": [
-            "First action"
-          ],
-          "links": []
-        },
+        "description": "APKs missing or not downloading",
+        "result": null,
         "next": {
           "title": "Downloading APKs",
           "image": "",
           "question": "Are you missing APKs or are they not downloading at all?",
-          "details": "",
+          "details": "Go to https://bsmd.sm0ke.org/ in your Quest browser and tap Download All.",
           "choices": [
             {
-              "label": "Missing APKs",
+              "label": "APKs are missing from the page",
               "description": "",
               "result": {
-                "title": "Missing APKs",
+                "title": "Accept the download permission",
                 "image": "",
-                "summary": "Make sure you accept the permissions on the page.",
+                "summary": "Your Quest browser blocked the downloads. You need to allow multiple downloads.",
                 "steps": [
-                  "Click \"Download All\"",
-                  "Click \"Accept\" on the banner at the bottom of the screen"
+                  "Open https://bsmd.sm0ke.org/ in your Quest browser.",
+                  "Tap Download All.",
+                  "When the banner appears at the bottom asking to allow multiple downloads, tap Accept or Allow.",
+                  "Wait for all three APKs to finish downloading."
                 ],
                 "links": [
                   {
@@ -63,13 +57,18 @@
               "next": null
             },
             {
-              "label": "Not downloading",
+              "label": "Downloads start but never finish",
               "description": "",
               "result": {
-                "title": "Not Downloading",
+                "title": "Check your connection",
                 "image": "",
-                "summary": "Check your internet connection.",
-                "steps": [],
+                "summary": "Slow or unstable Wi-Fi is the most common cause of stalled downloads.",
+                "steps": [
+                  "Make sure your Quest is connected to Wi-Fi and has a strong signal.",
+                  "Move closer to your router if the signal is weak.",
+                  "Try downloading one APK at a time instead of all at once.",
+                  "If your school or work network blocks downloads, try a different network or a mobile hotspot."
+                ],
                 "links": []
               },
               "next": null
@@ -79,24 +78,26 @@
       },
       {
         "label": "Installing APKs",
-        "description": "or MVRS issues",
+        "description": "Can't install or open the APK files",
         "result": null,
         "next": {
           "title": "Installing APKs",
           "image": "",
-          "question": "Whats wrong?",
-          "details": "",
+          "question": "What's going wrong?",
+          "details": "APKs live in the Files app → Downloads folder. Tap the ... next to each APK and choose Package installer.",
           "choices": [
             {
-              "label": "Missing APKs",
+              "label": "I can't find the APKs in the Files app",
               "description": "",
               "result": {
-                "title": "Missing APKs",
+                "title": "Accept the download permissions",
                 "image": "",
-                "summary": "Make sure you accept the permissions on the page.",
+                "summary": "The APKs may not have fully downloaded, or the browser blocked the batch download.",
                 "steps": [
-                  "Click \"Download All\"",
-                  "Click \"Accept\" on the banner at the bottom of the screen"
+                  "Open https://bsmd.sm0ke.org/ in your Quest browser.",
+                  "Tap Download All.",
+                  "If a banner appears at the bottom of the browser asking to allow multiple downloads, tap Accept.",
+                  "Wait for all downloads to complete, then open the Files app and tap Downloads."
                 ],
                 "links": [
                   {
@@ -108,119 +109,178 @@
               "next": null
             },
             {
-              "label": "MVRS not working / not updating",
+              "label": "I used MVRS and it's not working",
               "description": "",
               "result": {
-                "title": "MVRS",
+                "title": "Use the default Files app instead",
                 "image": "",
-                "summary": "MVRS is no longer needed. Use the default files app.",
+                "summary": "Mobile VR Station (MVRS) is no longer needed. The built-in Files app handles APK installs directly.",
                 "steps": [
-                  "Open the files app",
-                  "Click \"This Headset\"",
-                  "Look for \"Download\" and click on it",
-                  "Find the APKs and click on the \"...\" then click \"Open with\"",
-                  "Click Package installer -> Settings -> Allow from this source -> install",
-                  "and repeat with each APK"
+                  "Open the Files app (pre-installed on every Quest).",
+                  "Tap This Headset → Downloads.",
+                  "Tap the ... next to the first APK and choose Open with.",
+                  "Select Package installer.",
+                  "Tap Settings → allow installs from unknown sources → go back and tap Install.",
+                  "Tap Done (do not open the app yet).",
+                  "Repeat for each remaining APK."
                 ],
                 "links": []
               },
               "next": null
             },
             {
-              "label": "APKs not installing",
-              "description": "",
-              "result": {
-                "title": "APKs not installing",
+              "label": "The APK won't install at all",
+              "description": "Installer errors or nothing happens",
+              "result": null,
+              "next": {
+                "title": "APK won't install",
                 "image": "",
-                "summary": "Please get support at the discord or the support chat",
-                "steps": [],
-                "links": [
+                "question": "What do you see when you try to install?",
+                "details": "",
+                "choices": [
                   {
-                    "label": "Discord",
-                    "href": "https://d.sm0ke.org/"
+                    "label": "\"App not installed\" or \"Install blocked\"",
+                    "description": "",
+                    "result": {
+                      "title": "Allow installs from unknown sources",
+                      "image": "",
+                      "summary": "Android blocks APKs from outside the store by default. You need to allow it once.",
+                      "steps": [
+                        "Tap the ... next to the APK in Files → Downloads.",
+                        "Choose Open with → Package installer.",
+                        "Tap Settings on the installer screen.",
+                        "Enable Allow from this source.",
+                        "Press the back button and tap Install."
+                      ],
+                      "links": []
+                    },
+                    "next": null
                   },
                   {
-                    "label": "Support Chat",
-                    "href": "https://wiki.sm0ke.org/support/"
+                    "label": "Something else / no idea",
+                    "description": "",
+                    "result": {
+                      "title": "Get support",
+                      "image": "",
+                      "summary": "Take a screenshot of exactly what you see and bring it to support.",
+                      "steps": [],
+                      "links": [
+                        {
+                          "label": "Discord",
+                          "href": "https://d.sm0ke.org/"
+                        },
+                        {
+                          "label": "Support Chat",
+                          "href": "https://wiki.sm0ke.org/support/"
+                        }
+                      ]
+                    },
+                    "next": null
                   }
                 ]
-              },
-              "next": null
+              }
             }
           ]
         }
       },
       {
         "label": "Enabling Developer Mode",
-        "description": "",
+        "description": "Build Number not working, Wireless Debugging issues",
         "result": null,
         "next": {
           "title": "Enabling Developer Mode and Wireless Debugging",
           "image": "",
-          "question": "What issue are you experiencing? ",
-          "details": "",
+          "question": "What issue are you experiencing?",
+          "details": "Developer mode is enabled by tapping Build Number 7 times in Settings → About Headset.",
           "choices": [
             {
-              "label": "Clicked more than 10 times",
+              "label": "I tapped Build Number many times but nothing happened",
               "description": "",
               "result": null,
               "next": {
-                "title": "Enabling",
+                "title": "Build Number not responding",
                 "image": "",
-                "question": "Do you have multiple accounts?",
-                "details": "",
+                "question": "Do you have Multiple Accounts enabled on this headset?",
+                "details": "Go to Settings → Accounts and check whether there is more than one account listed.",
                 "choices": [
                   {
-                    "label": "Yes",
+                    "label": "Yes, there are multiple accounts",
                     "description": "",
                     "result": {
-                      "title": "Use the admin account",
+                      "title": "Switch to the admin account",
                       "image": "",
-                      "summary": "",
-                      "steps": [],
+                      "summary": "Developer mode can only be enabled from the primary admin account. Guest and secondary accounts cannot turn it on.",
+                      "steps": [
+                        "Switch to the primary (admin) account on the headset.",
+                        "Open Settings → About Headset.",
+                        "Tap Build Number 7 times until you see \"You are now a developer\".",
+                        "Go back to Settings → Developer options to confirm it's listed there."
+                      ],
                       "links": []
                     },
                     "next": null
                   },
                   {
-                    "label": "No",
+                    "label": "No, only one account",
                     "description": "",
                     "result": null,
                     "next": {
-                      "title": "Try restarting your headset.",
+                      "title": "Restart your headset and try again",
                       "image": "",
-                      "question": "Hold the power button, click show more and then restart.",
+                      "question": "Hold the power button, tap Show more, then tap Restart. After the headset comes back on, try tapping Build Number again.",
                       "details": "",
                       "choices": [
                         {
-                          "label": "Worked!",
+                          "label": "That worked!",
                           "description": "",
                           "result": {
-                            "title": "Continue modding!",
+                            "title": "Keep going!",
                             "image": "",
-                            "summary": "",
+                            "summary": "Developer mode is now on. Head back to the guide and continue with Wireless Debugging.",
                             "steps": [],
-                            "links": []
+                            "links": [
+                              {
+                                "label": "Back to the guide",
+                                "href": "/quest#using-dev-tools-opener-to-enable-developer-mode"
+                              }
+                            ]
                           },
                           "next": null
                         },
                         {
-                          "label": "Still not working!",
+                          "label": "Still not working",
                           "description": "",
                           "result": null,
                           "next": {
-                            "title": "Wait 1-2 hours and try again",
+                            "title": "Wait 1–2 hours and try again",
                             "image": "",
-                            "question": "",
+                            "question": "Meta occasionally rate-limits developer mode activation. Waiting and retrying usually fixes it.",
                             "details": "",
                             "choices": [
                               {
-                                "label": "STILL not working",
+                                "label": "It worked after waiting",
                                 "description": "",
                                 "result": {
-                                  "title": "Get help",
+                                  "title": "Keep going!",
                                   "image": "",
-                                  "summary": "Please get support at the discord or the support chat",
+                                  "summary": "Developer mode is now on. Head back to the guide and continue.",
+                                  "steps": [],
+                                  "links": [
+                                    {
+                                      "label": "Back to the guide",
+                                      "href": "/quest#using-dev-tools-opener-to-enable-developer-mode"
+                                    }
+                                  ]
+                                },
+                                "next": null
+                              },
+                              {
+                                "label": "Still not working after waiting",
+                                "description": "",
+                                "result": {
+                                  "title": "Get support",
+                                  "image": "",
+                                  "summary": "Please ask in the Discord or Support Chat. Include your headset model and what you see when you tap Build Number.",
                                   "steps": [],
                                   "links": [
                                     {
@@ -234,18 +294,6 @@
                                   ]
                                 },
                                 "next": null
-                              },
-                              {
-                                "label": "Worked!",
-                                "description": "",
-                                "result": {
-                                  "title": "Continue modding!",
-                                  "image": "",
-                                  "summary": "",
-                                  "steps": [],
-                                  "links": []
-                                },
-                                "next": null
                               }
                             ]
                           }
@@ -257,12 +305,160 @@
               }
             },
             {
-              "label": "Wireless Debugging",
+              "label": "Wireless Debugging won't turn on or I can't find it",
+              "description": "",
+              "result": null,
+              "next": {
+                "title": "Wireless Debugging",
+                "image": "",
+                "question": "What do you see?",
+                "details": "Wireless Debugging is inside Settings → Developer options. Developer mode must be on first.",
+                "choices": [
+                  {
+                    "label": "I can't find Developer options at all",
+                    "description": "",
+                    "result": {
+                      "title": "Enable developer mode first",
+                      "image": "",
+                      "summary": "Developer options only appears after you've tapped Build Number 7 times.",
+                      "steps": [
+                        "Open Dev Tools Opener and tap Open Settings → Open.",
+                        "Go to About Headset.",
+                        "Tap Build Number 7 times until you see \"You are now a developer\".",
+                        "Go back to the main Settings screen — Developer options should now appear at the bottom."
+                      ],
+                      "links": [
+                        {
+                          "label": "Back to the guide",
+                          "href": "/quest#using-dev-tools-opener-to-enable-developer-mode"
+                        }
+                      ]
+                    },
+                    "next": null
+                  },
+                  {
+                    "label": "Developer options is there but Wireless Debugging is greyed out",
+                    "description": "",
+                    "result": {
+                      "title": "Connect to Wi-Fi first",
+                      "image": "",
+                      "summary": "Wireless Debugging requires an active Wi-Fi connection. It will stay greyed out if you're not connected.",
+                      "steps": [
+                        "Open Settings → Wi-Fi and connect to your network.",
+                        "Go back to Developer options and toggle Wireless Debugging on."
+                      ],
+                      "links": []
+                    },
+                    "next": null
+                  },
+                  {
+                    "label": "Wireless Debugging is on but pairing fails",
+                    "description": "",
+                    "result": {
+                      "title": "Pairing tips",
+                      "image": "",
+                      "summary": "The pairing code expires quickly — you only have about 60 seconds to enter it.",
+                      "steps": [
+                        "Inside the Wireless Debugging menu, tap Pair device with pairing code.",
+                        "Immediately enter the 6-digit code shown into MBF Launcher — do not wait.",
+                        "If it says pairing failed, tap Pair device with pairing code again to get a fresh code and try once more.",
+                        "Make sure your phone/PC and Quest are on the same Wi-Fi network."
+                      ],
+                      "links": []
+                    },
+                    "next": null
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "label": "MBF Launcher issue",
+        "description": "Missing mods, errors, stuck screens",
+        "result": null,
+        "next": {
+          "title": "MBF Launcher issue",
+          "image": "",
+          "question": "What issue are you experiencing?",
+          "details": "",
+          "choices": [
+            {
+              "label": "Expected mods are missing from the list",
               "description": "",
               "result": {
-                "title": "Get help",
+                "title": "Check your Beat Saber version",
                 "image": "",
-                "summary": "Please get support at the discord or the support chat",
+                "summary": "Not all mods are available for every version. The mod list you see depends on which version of Beat Saber is installed.",
+                "steps": [
+                  "Check which version you are on — it shows at the bottom of the Beat Saber main menu.",
+                  "Some mods are only available on 1.37, others only on 1.40.8.",
+                  "If you need a specific mod, you may need to change version."
+                ],
+                "links": [
+                  {
+                    "label": "How to change version",
+                    "href": "/faq#swap-versions"
+                  },
+                  {
+                    "label": "Quest recommended mods",
+                    "href": "/modsQuest"
+                  }
+                ]
+              },
+              "next": null
+            },
+            {
+              "label": "It says \"Awaiting patch generation\"",
+              "description": "",
+              "result": {
+                "title": "Patches are being prepared — please wait",
+                "image": "",
+                "summary": "When Beat Saber updates, the MBF team has to generate new mod patches. This is normal and usually takes between 1 hour and 2 days.",
+                "steps": [
+                  "Do not try to force-install mods while this message is showing.",
+                  "Check back in a few hours.",
+                  "You can watch the MBF GitHub or the Discord for announcements on when patches are ready."
+                ],
+                "links": [
+                  {
+                    "label": "Discord",
+                    "href": "https://d.sm0ke.org/"
+                  }
+                ]
+              },
+              "next": null
+            },
+            {
+              "label": "MBF Launcher won't connect / ADB error",
+              "description": "",
+              "result": {
+                "title": "Reconnect your headset",
+                "image": "",
+                "summary": "MBF Launcher communicates with Beat Saber over ADB (Wireless Debugging). If the connection drops, you need to re-pair.",
+                "steps": [
+                  "Make sure Wireless Debugging is still on in your headset's Developer options.",
+                  "Close and reopen MBF Launcher.",
+                  "If it still fails, tap Pair device with pairing code inside Wireless Debugging and enter the new code into MBF Launcher.",
+                  "Try using MBF Tools if you have it — it can reconnect automatically."
+                ],
+                "links": [
+                  {
+                    "label": "MBF Tools app",
+                    "href": "/mbftools"
+                  }
+                ]
+              },
+              "next": null
+            },
+            {
+              "label": "Something else",
+              "description": "",
+              "result": {
+                "title": "Get support",
+                "image": "",
+                "summary": "Bring a screenshot of the error to support.",
                 "steps": [],
                 "links": [
                   {
@@ -281,51 +477,14 @@
         }
       },
       {
-        "label": "MBF Launcher issue",
-        "description": "",
+        "label": "Game Crash or won't load",
+        "description": "Crashes on launch or while playing",
         "result": null,
         "next": {
-          "title": "MBF Launcher issue",
-          "image": "",
-          "question": "What issue are you experiencing? ",
-          "details": "",
-          "choices": [
-            {
-              "label": "Missing mods",
-              "description": "",
-              "result": {
-                "title": "Mods missing",
-                "image": "",
-                "summary": "Make sure you are on the correct version!\n\nYou can [**change version**](/#/vchange) if needed",
-                "steps": [],
-                "links": []
-              },
-              "next": null
-            },
-            {
-              "label": "It says \"Awaiting patch generation\"",
-              "description": "",
-              "result": {
-                "title": "\"Awaiting patch generation\"",
-                "image": "",
-                "summary": "Please wait for patches to update to suport the latest version, it should be between 1 hour - 2 days.",
-                "steps": [],
-                "links": []
-              },
-              "next": null
-            }
-          ]
-        }
-      },
-      {
-        "label": "Game Crash / Game Issue",
-        "description": "",
-        "result": null,
-        "next": {
-          "title": "Game Crash / Game Issue",
+          "title": "Game Crash or won't load",
           "image": "",
           "question": "What version are you on?",
-          "details": "",
+          "details": "Your version is shown at the bottom-left of the Beat Saber main menu.",
           "choices": [
             {
               "label": "1.37",
@@ -334,30 +493,47 @@
               "next": {
                 "title": "1.37",
                 "image": "",
-                "question": "What issue are you having?",
+                "question": "When does it crash?",
                 "details": "",
                 "choices": [
                   {
-                    "label": "Game Crash on load",
+                    "label": "Crashes on launch (before getting to the menu)",
                     "description": "",
                     "result": null,
                     "next": {
-                      "title": "Game Crash on load",
+                      "title": "Crash on launch — 1.37",
                       "image": "",
-                      "question": "Have you tried reopening?",
-                      "details": "",
+                      "question": "Have you tried closing and reopening Beat Saber?",
+                      "details": "First crashes after modding are normal — the game sometimes needs 2–3 attempts to load for the first time.",
                       "choices": [
                         {
-                          "label": "Not working",
+                          "label": "Yes, reopening fixed it",
                           "description": "",
                           "result": {
-                            "title": "Get help",
+                            "title": "Have fun!",
                             "image": "",
-                            "summary": "Please get support at the discord or the support chat. Install the mod in the first link and provide your selected username in the discord/ support chat once you have installed the mod.",
+                            "summary": "First-launch crashes after modding are normal. Beat Saber should load reliably after the first successful boot.",
                             "steps": [],
+                            "links": []
+                          },
+                          "next": null
+                        },
+                        {
+                          "label": "Still crashing every time",
+                          "description": "",
+                          "result": {
+                            "title": "Get crash logs and ask for help",
+                            "image": "",
+                            "summary": "Install Crash Reporter to capture logs, then bring the username to support so they can diagnose the crash.",
+                            "steps": [
+                              "Go to https://bsquest.xyz/crgen/crgen.html and enter your Beat Saber username.",
+                              "Download and install the generated crash reporter config.",
+                              "Try launching Beat Saber again to capture the crash.",
+                              "Post your username in Discord or the Support Chat so support can look at the logs."
+                            ],
                             "links": [
                               {
-                                "label": "Mod Link",
+                                "label": "Crash Reporter setup",
                                 "href": "http://bsquest.xyz/crgen/crgen.html"
                               },
                               {
@@ -369,18 +545,6 @@
                                 "href": "https://wiki.sm0ke.org/support/"
                               }
                             ]
-                          },
-                          "next": null
-                        },
-                        {
-                          "label": "Worked!",
-                          "description": "",
-                          "result": {
-                            "title": "Have fun!",
-                            "image": "",
-                            "summary": "",
-                            "steps": [],
-                            "links": []
                           },
                           "next": null
                         }
@@ -388,26 +552,46 @@
                     }
                   },
                   {
-                    "label": "Game Crash on playing song",
+                    "label": "Crashes while playing a song",
                     "description": "",
                     "result": null,
                     "next": {
-                      "title": "Please check your mods.",
+                      "title": "Song crash — 1.37",
                       "image": "",
-                      "question": "Uninstall “IForgor”, “Endless”, or “Qosmetics” as they are known to cause crashes.",
+                      "question": "Does it crash on every song or only specific ones?",
                       "details": "",
                       "choices": [
                         {
-                          "label": "Still crashing",
+                          "label": "Only on certain songs",
                           "description": "",
                           "result": {
-                            "title": "Get help",
+                            "title": "The map may need mods you don't have",
                             "image": "",
-                            "summary": "Please get support at the discord or the support chat. Install the mod in the first link and provide your selected username in the discord/ support chat once you have installed the mod.",
-                            "steps": [],
+                            "summary": "Some custom maps require Chroma, Noodle Extensions, or Mapping Extensions. If those are missing the game can crash.",
+                            "steps": [
+                              "Check the map's page on BeatSaver — it will list any required mods.",
+                              "Install any missing mods through MBF Launcher.",
+                              "Try the song again."
+                            ],
+                            "links": []
+                          },
+                          "next": null
+                        },
+                        {
+                          "label": "Crashes on most or all songs",
+                          "description": "",
+                          "result": {
+                            "title": "Remove known problem mods",
+                            "image": "",
+                            "summary": "A few mods are known to cause song crashes on 1.37. Try removing them first.",
+                            "steps": [
+                              "Open MBF Launcher and go to Your Mods.",
+                              "Uninstall IForgor, Endless, and Qosmetics if they are installed.",
+                              "If that doesn't help, install Crash Reporter and bring your username to support."
+                            ],
                             "links": [
                               {
-                                "label": "Mod Link",
+                                "label": "Crash Reporter setup",
                                 "href": "http://bsquest.xyz/crgen/crgen.html"
                               },
                               {
@@ -419,18 +603,6 @@
                                 "href": "https://wiki.sm0ke.org/support/"
                               }
                             ]
-                          },
-                          "next": null
-                        },
-                        {
-                          "label": "Worked!",
-                          "description": "",
-                          "result": {
-                            "title": "Have fun!",
-                            "image": "",
-                            "summary": "",
-                            "steps": [],
-                            "links": []
                           },
                           "next": null
                         }
@@ -447,30 +619,47 @@
               "next": {
                 "title": "1.40.8",
                 "image": "",
-                "question": "What issue are you having?",
+                "question": "When does it crash?",
                 "details": "",
                 "choices": [
                   {
-                    "label": "Game Crash on load",
+                    "label": "Crashes on launch (before getting to the menu)",
                     "description": "",
                     "result": null,
                     "next": {
-                      "title": "Game Crash on load",
+                      "title": "Crash on launch — 1.40.8",
                       "image": "",
-                      "question": "Have you tried reopening?",
-                      "details": "",
+                      "question": "Have you tried closing and reopening Beat Saber?",
+                      "details": "The game sometimes needs 2–3 attempts to load after modding.",
                       "choices": [
                         {
-                          "label": "Not working",
+                          "label": "Yes, reopening fixed it",
                           "description": "",
                           "result": {
-                            "title": "Get help",
+                            "title": "Have fun!",
                             "image": "",
-                            "summary": "Please get support at the discord or the support chat. Install the mod in the first link and provide your selected username in the discord/ support chat once you have installed the mod.",
+                            "summary": "First-launch crashes after modding are normal and should stop after the first successful boot.",
                             "steps": [],
+                            "links": []
+                          },
+                          "next": null
+                        },
+                        {
+                          "label": "Still crashing every time",
+                          "description": "",
+                          "result": {
+                            "title": "Get crash logs and ask for help",
+                            "image": "",
+                            "summary": "Install Crash Reporter and bring your username to support.",
+                            "steps": [
+                              "Go to https://bsquest.xyz/crgen/crgen.html and enter your Beat Saber username.",
+                              "Download and install the generated crash reporter config.",
+                              "Try launching Beat Saber again to capture the crash.",
+                              "Post your username in Discord or the Support Chat."
+                            ],
                             "links": [
                               {
-                                "label": "Mod Link",
+                                "label": "Crash Reporter setup",
                                 "href": "http://bsquest.xyz/crgen/crgen.html"
                               },
                               {
@@ -484,33 +673,26 @@
                             ]
                           },
                           "next": null
-                        },
-                        {
-                          "label": "Worked!",
-                          "description": "",
-                          "result": {
-                            "title": "Have fun!",
-                            "image": "",
-                            "summary": "",
-                            "steps": [],
-                            "links": []
-                          },
-                          "next": null
                         }
                       ]
                     }
                   },
                   {
-                    "label": "Game Crash on playing song",
+                    "label": "Crashes while playing a song",
                     "description": "",
                     "result": {
-                      "title": "Get help",
+                      "title": "Get crash logs and ask for help",
                       "image": "",
-                      "summary": "Please get support at the discord or the support chat. Install the mod in the first link and provide your selected username in the discord/ support chat once you have installed the mod.",
-                      "steps": [],
+                      "summary": "Song crashes on 1.40.8 usually need a log to diagnose. Install Crash Reporter and bring your username to support.",
+                      "steps": [
+                        "Go to https://bsquest.xyz/crgen/crgen.html and enter your Beat Saber username.",
+                        "Download and install the generated crash reporter config.",
+                        "Play the song that crashes to capture the log.",
+                        "Post your username in Discord or Support Chat."
+                      ],
                       "links": [
                         {
-                          "label": "Mod Link",
+                          "label": "Crash Reporter setup",
                           "href": "http://bsquest.xyz/crgen/crgen.html"
                         },
                         {
@@ -530,6 +712,121 @@
             }
           ]
         }
+      },
+      {
+        "label": "Mods or custom songs not showing",
+        "description": "Missing mods after modding, songs not loading",
+        "result": null,
+        "next": {
+          "title": "Mods or custom songs not showing",
+          "image": "",
+          "question": "What's missing?",
+          "details": "",
+          "choices": [
+            {
+              "label": "Mods are gone after I updated Beat Saber",
+              "description": "",
+              "result": {
+                "title": "Mods are wiped by updates — you need to remod",
+                "image": "",
+                "summary": "Every time Beat Saber updates it replaces the game files and removes all mods. This is expected.",
+                "steps": [
+                  "Open MBF Launcher.",
+                  "It will detect that the game is now unmodded and offer to patch it again.",
+                  "Select your version and tap Mod the App.",
+                  "Reinstall your mods from the mod list."
+                ],
+                "links": []
+              },
+              "next": null
+            },
+            {
+              "label": "Custom songs are missing or the Custom Levels menu isn't there",
+              "description": "",
+              "result": {
+                "title": "Make sure Better Song Search is installed",
+                "image": "",
+                "summary": "Custom songs are loaded by SongCore and browsed with Better Song Search. Both need to be installed.",
+                "steps": [
+                  "Open MBF Launcher and check that Better Song Search is in Your Mods.",
+                  "If it's missing, go to Add Mods, find Better Song Search, and install it.",
+                  "Launch Beat Saber — the Custom Levels menu should now appear in Solo mode.",
+                  "Use Better Song Search to download songs from inside the game."
+                ],
+                "links": [
+                  {
+                    "label": "Quest recommended mods",
+                    "href": "/modsQuest"
+                  }
+                ]
+              },
+              "next": null
+            },
+            {
+              "label": "A specific mod isn't showing up in-game",
+              "description": "",
+              "result": {
+                "title": "Check the mod is correctly installed",
+                "image": "",
+                "summary": "If a mod installs without errors but doesn't appear in-game, it may not be compatible with your version.",
+                "steps": [
+                  "Open MBF Launcher → Your Mods and confirm the mod shows as installed (not just listed).",
+                  "Check you are on the version the mod supports — some mods are 1.37-only or 1.40.8-only.",
+                  "Try restarting Beat Saber.",
+                  "If the mod has a settings menu, look for it in the game's Mod Settings screen (⚙️ → Mod Settings)."
+                ],
+                "links": []
+              },
+              "next": null
+            },
+            {
+              "label": "A map says it requires Vivify",
+              "description": "",
+              "result": {
+                "title": "Vivify is not available on Quest yet",
+                "image": "",
+                "summary": "Vivify is a PC-only mod that is currently in development for Quest. There is no release date. Maps that require Vivify cannot be played on Quest right now.",
+                "steps": [
+                  "Check the map's BeatSaver page — if Vivify is listed as a requirement, the map is PC-only for now.",
+                  "There is no workaround. The map will not load correctly without Vivify.",
+                  "Keep an eye on the Discord for announcements when Vivify for Quest becomes available."
+                ],
+                "links": [
+                  {
+                    "label": "Discord",
+                    "href": "https://d.sm0ke.org/"
+                  }
+                ]
+              },
+              "next": null
+            }
+          ]
+        }
+      },
+      {
+        "label": "Something else",
+        "description": "Issue not listed above",
+        "result": {
+          "title": "Ask for support",
+          "image": "",
+          "summary": "If your problem isn't covered here, bring it to the Discord or Support Chat. Include your headset model, Beat Saber version, and a screenshot of what you see.",
+          "steps": [],
+          "links": [
+            {
+              "label": "FAQ",
+              "href": "/faq"
+            },
+            {
+              "label": "Discord",
+              "href": "https://d.sm0ke.org/"
+            },
+            {
+              "label": "Support Chat",
+              "href": "https://wiki.sm0ke.org/support/"
+            }
+          ]
+        },
+        "next": null
       }
     ]
   }

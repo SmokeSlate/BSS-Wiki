@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'Beat Saber Modding Wiki',
-  description: 'Learn how to mod Beat Saber on Quest and PC — MBF Launcher, custom songs, custom sabers, and more.',
+  description: 'Step-by-step guides for modding Beat Saber on Meta Quest and PC — MBF Launcher, BSManager, custom songs, custom sabers, recommended mods, and troubleshooting.',
   lang: 'en-US',
 
   srcDir: '.',
@@ -75,6 +75,8 @@ export default defineConfig({
         link: '/pc',
         items: [
           { text: 'BSManager', link: '/pc#bsmanager' },
+          { text: 'Custom Songs', link: '/pc#install-custom-songs' },
+          { text: 'Troubleshooting', link: '/pc#troubleshooting' },
           { text: 'Recommended Mods', link: '/modsPC' },
         ],
       },
