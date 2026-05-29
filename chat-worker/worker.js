@@ -19,7 +19,7 @@ const DEFAULT_SNIPPETS = {
   },
   help: {
     content:
-      "-# **|| ||**\n# Support Macros\n- `!crgen` makes a crash reporter auto config url\n    - **Requires** a username, eg: `!crgen SmokeSlate`\n- `!bsv` is the link to the Beat Saber Video\n- `!wiki` is the wiki url\n- `!faq` shows frequently asked questions\n- `!diag <code>` opens the AI diagnosis page for a shared log\n- `!help` shows this\n\n\n> **Tip:** if you reply to a message, it will ping the author of the message.\n-# You can see this message with `!help`",
+      "-# **|| ||**\n# Support Macros\n- `!crgen` makes a crash reporter auto config url\n    - **Requires** a username, eg: `!crgen SmokeSlate`\n- `!bsv` is the link to the Beat Saber Video\n- `!wiki` is the wiki url\n- `!faq` shows frequently asked questions\n- `!check` explains how to share logs and get an AI diagnosis\n- `!diag <code>` opens the AI diagnosis page for a shared log\n- `!help` shows this\n\n\n> **Tip:** if you reply to a message, it will ping the author of the message.\n-# You can see this message with `!help`",
     dynamic: false,
   },
   faq: {
@@ -29,12 +29,12 @@ const DEFAULT_SNIPPETS = {
   },
   macro: {
     content:
-      "** **\n# Support Macros\n- `!crgen` makes a crash reporter auto config url\n    - **Requires** a username, eg: `!crgen SmokeSlate`\n- `!bsv` is the link to the Beat Saber Video\n- `!wiki` is the wiki url\n- `!faq` shows frequently asked questions\n- `!diag <code>` opens the AI diagnosis page for a shared log\n- `!macro` shows this\n\n\n> **Tip:** if you reply to a message, it will ping the author of the message.\n-# You can see this message with `!macro`",
+      "** **\n# Support Macros\n- `!crgen` makes a crash reporter auto config url\n    - **Requires** a username, eg: `!crgen SmokeSlate`\n- `!bsv` is the link to the Beat Saber Video\n- `!wiki` is the wiki url\n- `!faq` shows frequently asked questions\n- `!check` explains how to share logs and get an AI diagnosis\n- `!diag <code>` opens the AI diagnosis page for a shared log\n- `!macro` shows this\n\n\n> **Tip:** if you reply to a message, it will ping the author of the message.\n-# You can see this message with `!macro`",
     dynamic: false,
   },
   h: {
     content:
-      "** **\n# Support Macros\n- `!crgen` makes a crash reporter auto config url\n    - **Requires** a username, eg: `!crgen SmokeSlate`\n- `!bsv` is the link to the Beat Saber Video\n- `!wiki` is the wiki url\n- `!faq` shows frequently asked questions\n- `!diag <code>` opens the AI diagnosis page for a shared log\n- `!h` shows this\n\n\n> **Tip:** if you reply to a message, it will ping the author of the message.\n-# You can see this message with `!h`",
+      "** **\n# Support Macros\n- `!crgen` makes a crash reporter auto config url\n    - **Requires** a username, eg: `!crgen SmokeSlate`\n- `!bsv` is the link to the Beat Saber Video\n- `!wiki` is the wiki url\n- `!faq` shows frequently asked questions\n- `!check` explains how to share logs and get an AI diagnosis\n- `!diag <code>` opens the AI diagnosis page for a shared log\n- `!h` shows this\n\n\n> **Tip:** if you reply to a message, it will ping the author of the message.\n-# You can see this message with `!h`",
     dynamic: false,
   },
   mvrs: {
@@ -68,8 +68,13 @@ const DEFAULT_SNIPPETS = {
   },
   diag: {
     content:
-      "**AI Diagnostics**\nIf you shared your MBF logs, paste the code here and I'll generate an AI diagnosis:\n**https://wiki.sm0ke.org/fix?log={1}**\n-# You can use `!diag <code>` to show this",
+      "**AI Diagnosis — code `{1}`**\n> https://wiki.sm0ke.org/fix?log={1}\nOpen that link to see a full AI diagnosis of your logs.\n-# You can use `!diag <code>` to show this",
     dynamic: true,
+  },
+  check: {
+    content:
+      "**How to get an AI diagnosis of your setup:**\n1. Open **MBF Tools** on your Quest\n2. Tap **Share Debug Logs** on the home screen\n3. A code will appear (like `abc12`) — copy it\n4. Come back here and type `!diag <code>`\n   — or visit **https://wiki.sm0ke.org/fix?log=<code>** directly for the full AI analysis\n-# You can use `!check` to show this",
+    dynamic: false,
   },
   mbfli: {
     content: "File an issue here: https://github.com/DanTheMan827/mbf-launcher",
