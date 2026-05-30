@@ -136,6 +136,7 @@
             .then(function (data) {
               if (!data.ok) throw new Error(data.error || "Diagnosis failed.");
               section.innerHTML = renderCard("done", code, data.diagnosis);
+              initChat(code);
             })
             .catch(function (err) {
               section.innerHTML = renderCard("error", code, null, err.message || "Could not complete diagnosis.");
@@ -193,7 +194,7 @@
             : "<pre class=\"whitespace-pre-wrap text-sm\">" + escapeHtml(diagnosis || "") + "</pre>";
 
           return (
-            '<div class="rounded-xl border border-indigo-400/20 bg-gray-800 px-6 py-6">' +
+            '<div class="rounded-xl border border-indigo-400/20 bg-gray-800 px-6 py-6" id="diag-card">' +
               header +
               '<div class="md-copy text-gray-100 text-sm leading-relaxed">' + diagHtml + '</div>' +
               '<div class="mt-6 pt-4 border-t border-gray-700 flex flex-wrap gap-4 text-xs">' +
@@ -203,8 +204,98 @@
                 '<button type="button" onclick="rerunDiagnose()" ' +
                   'class="text-indigo-400 underline underline-offset-2 hover:text-indigo-300">Re-run diagnosis</button>' +
               '</div>' +
+              // ── Follow-up chat ──
+              '<div class="mt-6 pt-5 border-t border-gray-700">' +
+                '<p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">Ask a follow-up</p>' +
+                '<div id="chat-history" class="space-y-3 mb-4"></div>' +
+                '<div class="flex gap-2">' +
+                  '<input id="chat-input" type="text" maxlength="500" ' +
+                    'placeholder="e.g. Why is QuestSounds logging errors?" ' +
+                    'class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white ' +
+                    'placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors" />' +
+                  '<button id="chat-send" type="button" ' +
+                    'class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm ' +
+                    'font-medium rounded-lg transition-colors shrink-0">Ask</button>' +
+                '</div>' +
+                '<p id="chat-status" class="text-xs text-gray-500 mt-2 min-h-[1rem]"></p>' +
+              '</div>' +
             '</div>'
           );
+        }
+
+        // ── Chat state & logic ──
+        var chatHistory = []; // { role, content } pairs sent to API
+
+        function renderChatMessage(role, content) {
+          var isUser = role === "user";
+          var mdContent = !isUser && typeof window.marked !== "undefined" && typeof window.DOMPurify !== "undefined"
+            ? window.DOMPurify.sanitize(window.marked.parse(content || ""))
+            : "<span>" + escapeHtml(content || "") + "</span>";
+
+          var histEl = document.getElementById("chat-history");
+          if (!histEl) return;
+          var msg = document.createElement("div");
+          msg.className = isUser
+            ? "text-sm text-gray-300 bg-gray-900/60 rounded-lg px-3 py-2 text-right"
+            : "text-sm text-gray-100 md-copy leading-relaxed";
+          msg.innerHTML = isUser ? escapeHtml(content) : mdContent;
+          histEl.appendChild(msg);
+          msg.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+
+        function setChatStatus(msg, isError) {
+          var el = document.getElementById("chat-status");
+          if (!el) return;
+          el.textContent = msg || "";
+          el.className = "text-xs mt-2 min-h-[1rem] " + (isError ? "text-rose-400" : "text-gray-500");
+        }
+
+        function initChat(code) {
+          var sendBtn = document.getElementById("chat-send");
+          var input = document.getElementById("chat-input");
+          if (!sendBtn || !input) return;
+
+          function send() {
+            var q = input.value.trim();
+            if (!q || sendBtn.disabled) return;
+            input.value = "";
+            sendBtn.disabled = true;
+            setChatStatus("Thinking…");
+            renderChatMessage("user", q);
+
+            fetch(LOGS_API + "/followup/" + encodeURIComponent(code), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ question: q, history: chatHistory }),
+              signal: AbortSignal.timeout(45000),
+            })
+              .then(function (r) { return r.json(); })
+              .then(function (data) {
+                sendBtn.disabled = false;
+                if (!data.ok) {
+                  var msg = data.error || "Error";
+                  if (data.retryAfter) msg += " (retry in " + data.retryAfter + "s)";
+                  if (data.banned) msg = "⛔ " + msg;
+                  setChatStatus(msg, true);
+                  return;
+                }
+                chatHistory.push({ role: "user", content: q });
+                chatHistory.push({ role: "assistant", content: data.answer });
+                // keep last 10 messages (5 exchanges)
+                if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+                renderChatMessage("assistant", data.answer);
+                setChatStatus("");
+              })
+              .catch(function (err) {
+                sendBtn.disabled = false;
+                setChatStatus(err.message || "Request failed", true);
+              });
+          }
+
+          sendBtn.addEventListener("click", send);
+          input.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+          });
         }
 
         function escapeHtml(v) {
@@ -212,6 +303,7 @@
         }
 
         window.rerunDiagnose = function () {
+          chatHistory = [];
           section.innerHTML = renderCard("loading", logCode);
           doFetch(logCode);
         };
