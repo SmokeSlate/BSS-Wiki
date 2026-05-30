@@ -484,7 +484,7 @@
           "title": "Game Crash or won't load",
           "image": "",
           "question": "What version are you on?",
-          "details": "Your version is shown at the bottom-left of the Beat Saber main menu.",
+          "details": "Your version is shown on your feat in the Beat Saber menu.",
           "choices": [
             {
               "label": "1.37",
