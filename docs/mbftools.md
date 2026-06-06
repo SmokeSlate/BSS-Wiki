@@ -1,35 +1,8 @@
 # MBF Tools and Setup
 
-**MBF Tools** is a free Android app for Meta Quest that combines the full Beat Saber modding setup flow into a single on-headset experience — no PC, no terminal.
+**MBF Tools** is a open source app for Meta Quest that combines the full Beat Saber modding setup flow into a simple interface.
 
-> If you just want to mod Beat Saber, go to the [Quest Modding guide](/quest) instead. This page covers the MBF Tools app itself.
-
----
-
-## Download
-
-Open the Quest browser and visit:
-
-**[mbf.tools](https://mbf.tools)**
-
-Tap **Download APK**, then install it through your Quest's file manager.
-
----
-
-## What it does
-
-| Feature | Description |
-|---|---|
-| **Guided setup wizard** | Step-by-step: developer mode → Wireless Debugging → ADB pair |
-| **Wireless ADB pairing** | Enter a 6-digit code; the app detects ports automatically |
-| **Integrated MBF** | Starts the MBF native bridge locally, opens MBF in a built-in browser |
-| **Live support hub** | FAQ and fix form from the wiki, accessible without leaving the app |
-| **Performance controls** | Adjust CPU, GPU, and refresh rate over ADB in one tap |
-| **Debug log sharing** | One-tap export generates a support share code |
-
----
-
-## How to use it
+## Instructions
 
 ### 1. Install MBF Tools
 
