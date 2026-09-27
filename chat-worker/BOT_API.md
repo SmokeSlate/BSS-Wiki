@@ -70,7 +70,7 @@ Content-Type: application/json
 
 `conversationId`, `text`, and `requestId` are required. Keep `requestId` stable when retrying the same reply. The API returns the existing message with `"duplicate": true` instead of adding it again. A new reply returns HTTP 201. A retry returns HTTP 200.
 
-Bot replies appear as support messages in the visitor's live chat. They also use the existing Discord notification path when it is configured.
+Bot replies appear as support messages in the visitor's live chat. When the Discord bot integration is configured, they are also posted in that conversation's Discord thread.
 
 The full machine-readable contract is in [openapi.yaml](./openapi.yaml).
 

@@ -12,5 +12,8 @@ preview_database_id = "0ad6de03-5ba0-4132-bb62-f34718220f29"
 
 [vars]
 ALLOWED_ORIGINS = "*"
+SMOKEBOT_API_URL = "https://botapi.sm0ke.org"
 
 # Configure the bot API with: npx wrangler secret put BOT_API_KEY
+# Configure Discord with:
+#   npx wrangler secret put DISCORD_BRIDGE_KEY

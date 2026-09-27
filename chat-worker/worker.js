@@ -4,6 +4,7 @@ const MAX_BOT_INBOX_LIMIT = 100;
 const MAX_REQUEST_ID_LENGTH = 128;
 const PRESENCE_TTL_MS = 120000;
 const ALLTHEPICS_UPLOAD_URL = "https://allthepics.net/api/1/upload";
+const DISCORD_MESSAGE_LENGTH = 2000;
 
 const DEFAULT_SNIPPETS = {
   wiki: {
@@ -150,6 +151,10 @@ export default {
 
       if (path === "/api/bot/replies" && request.method === "POST") {
         return await handleBotReply(request, env, ctx);
+      }
+
+      if (path === "/api/discord/replies" && request.method === "POST") {
+        return await handleDiscordReply(request, env);
       }
 
       if (path === "/api/messages" && request.method === "GET") {
@@ -497,7 +502,7 @@ async function handleBotReply(request, env, ctx) {
     requestId,
   });
   if (!result.duplicate) {
-    notifyWebhook(result.message, payload, env, ctx);
+    relayMessageToDiscord(result.message, env, ctx);
   }
   return jsonResponse(
     { ok: true, duplicate: result.duplicate, message: result.message },
@@ -557,11 +562,52 @@ async function handlePostMessage(request, env, ctx) {
     clientToken: providedToken,
   });
 
-  notifyWebhook(result.message, payload, env, ctx);
+  relayMessageToDiscord(result.message, env, ctx);
 
   return jsonResponse(
     { ok: true, message: result.message, clientToken: result.clientToken },
     200,
+    request,
+    env
+  );
+}
+
+async function handleDiscordReply(request, env) {
+  await requireDiscordBridge(request, env);
+  ensureDb(env);
+  const payload = await readJson(request);
+  const threadId = stringField(payload.threadId);
+  const discordMessageId = stringField(payload.messageId);
+  const text = stringField(payload.text);
+  const senderId = stringField(payload.senderId);
+  const senderName = stringField(payload.senderName) || "Discord support";
+
+  if (!threadId || !discordMessageId || !text || !senderId) {
+    throw new HttpError(400, "threadId, messageId, senderId, and text are required");
+  }
+  if (text.length > MAX_MESSAGE_LENGTH) {
+    throw new HttpError(400, `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer`);
+  }
+
+  const conversation = await readConversationByDiscordThread(env, threadId);
+  if (!conversation) {
+    return jsonResponse({ ok: false, managed: false, error: "Discord thread is not managed by the support chat" }, 404, request, env);
+  }
+
+  const result = await appendConversationMessage(env, {
+    conversation,
+    conversationId: conversation.id,
+    senderId: `discord:${senderId}`,
+    senderName,
+    text,
+    role: "support",
+    clientToken: conversation.token,
+    requestId: `discord:${discordMessageId}`,
+  });
+
+  return jsonResponse(
+    { ok: true, managed: true, duplicate: result.duplicate, message: result.message },
+    result.duplicate ? 200 : 201,
     request,
     env
   );
@@ -842,7 +888,9 @@ async function readConversation(env, conversationId) {
       last_message_role as lastMessageRole,
       last_message_sender_name as lastMessageSenderName,
       token,
-      messages_json as messagesJson
+      messages_json as messagesJson,
+      discord_thread_id as discordThreadId,
+      discord_starter_message_id as discordStarterMessageId
     FROM conversations
     WHERE id = ?`
   ).bind(conversationId).first();
@@ -859,7 +907,19 @@ async function readConversation(env, conversationId) {
     lastMessageSenderName: row.lastMessageSenderName || "",
     token: row.token || "",
     messagesJson: row.messagesJson || "[]",
+    discordThreadId: row.discordThreadId || "",
+    discordStarterMessageId: row.discordStarterMessageId || "",
   };
+}
+
+async function readConversationByDiscordThread(env, threadId) {
+  ensureDb(env);
+  const row = await env.DB.prepare(
+    `SELECT id
+      FROM conversations
+      WHERE discord_thread_id = ?`
+  ).bind(threadId).first();
+  return row?.id ? readConversation(env, row.id) : null;
 }
 
 function parseMessagesJson(raw) {
@@ -989,6 +1049,19 @@ async function requireBot(request, env) {
   const authorization = request.headers.get("Authorization") || "";
   const bearer = authorization.match(/^Bearer\s+(.+)$/i);
   const provided = stringField(bearer?.[1]) || stringField(request.headers.get("X-Bot-Key"));
+  if (!provided || !(await verifySecret(provided, configured))) {
+    throw new HttpError(401, "Unauthorized");
+  }
+}
+
+async function requireDiscordBridge(request, env) {
+  const configured = stringField(env.DISCORD_BRIDGE_KEY);
+  if (!configured) {
+    throw new HttpError(503, "Discord bridge not configured");
+  }
+  const authorization = request.headers.get("Authorization") || "";
+  const bearer = authorization.match(/^Bearer\s+(.+)$/i);
+  const provided = stringField(bearer?.[1]);
   if (!provided || !(await verifySecret(provided, configured))) {
     throw new HttpError(401, "Unauthorized");
   }
@@ -1271,29 +1344,128 @@ function applySnippet(snippet, args, meta) {
   return result;
 }
 
-function notifyWebhook(message, payload, env, ctx) {
-  const webhookUrl = env.DISCORD_WEBHOOK_URL;
-  if (!webhookUrl || !message?.text) {
+function relayMessageToDiscord(message, env, ctx) {
+  if (!message?.text || !env.SMOKEBOT_API_URL || !env.DISCORD_BRIDGE_KEY) {
     return;
   }
-  const defaultAvatar = "https://wiki.sm0ke.org/assets/bsm.png";
-  const body = {
-    content: message.text,
-    username: message.senderName || "Support Bot",
-    avatar_url: payload.senderAvatar || payload.avatar || defaultAvatar,
-  };
-  if (message.role === "support") {
-    body.flags = 4096;
-  }
-  const request = fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  }).catch(() => null);
+  const task = relayMessageToDiscordThread(message, env).catch((error) => {
+    console.error("Discord relay failed", {
+      conversationId: message.conversationId,
+      messageId: message.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  });
+  ctx.waitUntil(task);
+}
 
-  if (ctx && typeof ctx.waitUntil === "function") {
-    ctx.waitUntil(request);
+async function relayMessageToDiscordThread(message, env) {
+  const conversation = await readConversation(env, message.conversationId);
+  if (!conversation) {
+    throw new Error("Conversation not found for Discord relay");
   }
+
+  const threadId = conversation.discordThreadId || await createDiscordConversationThread(env, conversation, message);
+  const senderName = sanitizeDiscordLabel(message.senderName || (message.role === "support" ? "Support" : "Guest"));
+  const roleLabel = message.role === "support" ? "Support" : "User";
+  const prefix = `**${roleLabel} · ${senderName}**\n`;
+  const chunks = splitDiscordMessage(prefix, message.text);
+
+  for (const content of chunks) {
+    await createDiscordMessage(env, threadId, content);
+  }
+}
+
+async function createDiscordConversationThread(env, conversation, firstMessage) {
+  const starterContent = [
+    "**New wiki support chat**",
+    `User: ${sanitizeDiscordLabel(firstMessage.senderName || conversation.name || "Guest")}`,
+    `Chat ID: \`${sanitizeDiscordCode(conversation.id)}\``,
+    "Reply inside this thread. Messages in the parent channel are not sent to the web chat.",
+  ].join("\n");
+  const created = await smokeBotRequest(env, {
+    starterContent,
+    threadName: buildDiscordThreadName(conversation, firstMessage),
+  });
+  const threadId = stringField(created.threadId);
+  const starterMessageId = stringField(created.starterMessageId);
+  if (!threadId) {
+    throw new Error("SmokeBot did not return a thread ID");
+  }
+
+  await env.DB.prepare(
+    `UPDATE conversations
+      SET discord_thread_id = ?, discord_starter_message_id = ?
+      WHERE id = ?`
+  ).bind(threadId, starterMessageId, conversation.id).run();
+  return threadId;
+}
+
+async function createDiscordMessage(env, channelId, content) {
+  return smokeBotRequest(env, { threadId: channelId, content });
+}
+
+async function smokeBotRequest(env, body) {
+  const baseUrl = String(env.SMOKEBOT_API_URL || "").replace(/\/+$/, "");
+  const response = await fetch(`${baseUrl}/api/support-chat/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.DISCORD_BRIDGE_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = stringField(data?.message) || `HTTP ${response.status}`;
+    throw new Error(`SmokeBot request failed: ${detail}`);
+  }
+  return data;
+}
+
+function splitDiscordMessage(prefix, text) {
+  const firstLimit = DISCORD_MESSAGE_LENGTH - prefix.length;
+  const chunks = [];
+  let remaining = String(text || "");
+  let first = true;
+  while (remaining) {
+    const limit = first ? firstLimit : DISCORD_MESSAGE_LENGTH;
+    let cut = Math.min(limit, remaining.length);
+    if (cut < remaining.length) {
+      const newline = remaining.lastIndexOf("\n", cut);
+      const space = remaining.lastIndexOf(" ", cut);
+      const boundary = Math.max(newline, space);
+      if (boundary > Math.floor(limit * 0.6)) {
+        cut = boundary;
+      }
+    }
+    const part = remaining.slice(0, cut).trim();
+    if (part) {
+      chunks.push(`${first ? prefix : ""}${part}`);
+    }
+    remaining = remaining.slice(cut).trimStart();
+    first = false;
+  }
+  return chunks;
+}
+
+function buildDiscordThreadName(conversation, message) {
+  const name = sanitizeDiscordLabel(message.senderName || conversation.name || "guest")
+    .replace(/\s+/g, " ")
+    .trim();
+  const suffix = sanitizeDiscordLabel(conversation.id).slice(-8);
+  return `support-${name || "guest"}-${suffix}`.slice(0, 100);
+}
+
+function sanitizeDiscordLabel(value) {
+  return String(value || "")
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/[*_`~|<>@]/g, "")
+    .trim()
+    .slice(0, 80);
+}
+
+function sanitizeDiscordCode(value) {
+  return String(value || "").replace(/`/g, "").slice(0, 100);
 }
 
 function normalizeOriginPattern(value) {
