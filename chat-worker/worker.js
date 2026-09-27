@@ -1,4 +1,7 @@
 const MAX_MESSAGES = 200;
+const MAX_MESSAGE_LENGTH = 8000;
+const MAX_BOT_INBOX_LIMIT = 100;
+const MAX_REQUEST_ID_LENGTH = 128;
 const PRESENCE_TTL_MS = 120000;
 const ALLTHEPICS_UPLOAD_URL = "https://allthepics.net/api/1/upload";
 
@@ -136,6 +139,19 @@ export default {
         return jsonResponse({ conversations }, 200, request, env);
       }
 
+      if (path === "/api/bot/inbox" && request.method === "GET") {
+        return await handleBotInbox(request, env);
+      }
+
+      const botConversationMatch = path.match(/^\/api\/bot\/conversations\/([^/]+)$/);
+      if (botConversationMatch && request.method === "GET") {
+        return await handleBotConversation(request, env, decodeURIComponent(botConversationMatch[1]));
+      }
+
+      if (path === "/api/bot/replies" && request.method === "POST") {
+        return await handleBotReply(request, env, ctx);
+      }
+
       if (path === "/api/messages" && request.method === "GET") {
         return await handleGetMessages(request, env);
       }
@@ -208,6 +224,9 @@ async function handleGetMessages(request, env) {
 
   const isAdmin = isAdminRequest(request, env);
   const conversation = await readConversation(env, conversationId);
+  if (!conversation) {
+    return jsonResponse({ messages: [] }, 200, request, env);
+  }
   if (!isAdmin) {
     const token =
       url.searchParams.get("token") ||
@@ -230,10 +249,6 @@ async function handleGetMessages(request, env) {
     limit = MAX_MESSAGES;
   }
   limit = Math.min(limit, MAX_MESSAGES);
-
-  if (!conversation) {
-    return jsonResponse({ messages: [] }, 200, request, env);
-  }
 
   const messages = readMessagesFromJson(conversation.messagesJson, {
     after,
@@ -375,6 +390,123 @@ async function handleStream(request, env) {
   });
 }
 
+async function handleBotInbox(request, env) {
+  await requireBot(request, env);
+  ensureDb(env);
+  const url = new URL(request.url);
+  const limit = Math.min(
+    parsePositiveInteger(url.searchParams.get("limit"), 25),
+    MAX_BOT_INBOX_LIMIT
+  );
+  const result = await env.DB.prepare(
+    `SELECT
+      id,
+      name,
+      created_at as createdAt,
+      last_message_at as lastMessageAt,
+      last_message_preview as lastMessagePreview,
+      last_message_sender_name as lastMessageSenderName
+    FROM conversations
+    WHERE last_message_role = 'user'
+    ORDER BY last_message_at ASC, id ASC
+    LIMIT ?`
+  ).bind(limit + 1).all();
+  const rows = result.results || [];
+  const hasMore = rows.length > limit;
+  const conversations = rows.slice(0, limit).map((row) => ({
+    id: row.id,
+    name: row.name || "",
+    createdAt: row.createdAt || 0,
+    lastMessageAt: row.lastMessageAt || 0,
+    lastMessagePreview: row.lastMessagePreview || "",
+    lastMessageSenderName: row.lastMessageSenderName || "",
+  }));
+  return jsonResponse({ conversations, hasMore }, 200, request, env);
+}
+
+async function handleBotConversation(request, env, conversationId) {
+  await requireBot(request, env);
+  ensureDb(env);
+  if (!conversationId) {
+    throw new HttpError(400, "conversationId required");
+  }
+  const conversation = await readConversation(env, conversationId);
+  if (!conversation) {
+    throw new HttpError(404, "Conversation not found");
+  }
+  const url = new URL(request.url);
+  const limit = Math.min(
+    parsePositiveInteger(url.searchParams.get("limit"), MAX_MESSAGES),
+    MAX_MESSAGES
+  );
+  const visibleMessages = parseMessagesJson(conversation.messagesJson)
+    .filter((message) => message.id && !message.deletedAt);
+  const hasMore = visibleMessages.length > limit;
+  const messages = hasMore ? visibleMessages.slice(-limit) : visibleMessages;
+  return jsonResponse(
+    {
+      conversation: {
+        id: conversation.id,
+        name: conversation.name,
+        createdAt: conversation.createdAt,
+        lastMessageAt: conversation.lastMessageAt,
+      },
+      messages,
+      hasMore,
+    },
+    200,
+    request,
+    env
+  );
+}
+
+async function handleBotReply(request, env, ctx) {
+  await requireBot(request, env);
+  ensureDb(env);
+  const payload = await readJson(request);
+  const conversationId = stringField(payload.conversationId);
+  const text = stringField(payload.text);
+  const requestId = stringField(payload.requestId);
+  const replyToMessageId = stringField(payload.replyToMessageId);
+  const senderId = stringField(payload.botId) || "ai-support-bot";
+  const senderName = stringField(payload.botName) || "AI Support";
+
+  if (!conversationId || !text || !requestId) {
+    throw new HttpError(400, "conversationId, text, and requestId are required");
+  }
+  if (text.length > MAX_MESSAGE_LENGTH) {
+    throw new HttpError(400, `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer`);
+  }
+  if (requestId.length > MAX_REQUEST_ID_LENGTH) {
+    throw new HttpError(400, `requestId must be ${MAX_REQUEST_ID_LENGTH} characters or fewer`);
+  }
+
+  const conversation = await readConversation(env, conversationId);
+  if (!conversation) {
+    throw new HttpError(404, "Conversation not found");
+  }
+  const result = await appendConversationMessage(env, {
+    conversation,
+    conversationId,
+    senderId,
+    senderName,
+    text,
+    role: "support",
+    clientToken: conversation.token,
+    replyToMessageId,
+    requestId,
+  });
+  if (!result.duplicate) {
+    notifyWebhook(result.message, payload, env, ctx);
+  }
+  return jsonResponse(
+    { ok: true, duplicate: result.duplicate, message: result.message },
+    result.duplicate ? 200 : 201,
+    request,
+    env
+  );
+}
+
 async function handlePostMessage(request, env, ctx) {
   ensureDb(env);
   const payload = await readJson(request);
@@ -386,6 +518,9 @@ async function handlePostMessage(request, env, ctx) {
 
   if (!conversationId || !senderId || !rawText) {
     throw new HttpError(400, "Missing fields");
+  }
+  if (rawText.length > MAX_MESSAGE_LENGTH) {
+    throw new HttpError(400, `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer`);
   }
 
   if (role === "support") {
@@ -404,7 +539,6 @@ async function handlePostMessage(request, env, ctx) {
     throw new HttpError(400, "Message empty");
   }
 
-  const now = Date.now();
   const conversation = await readConversation(env, conversationId);
 
   const providedToken = payload.clientToken || request.headers.get("X-Client-Token") || "";
@@ -413,27 +547,68 @@ async function handlePostMessage(request, env, ctx) {
       throw new HttpError(403, "Unauthorized");
     }
   }
-  let clientToken = conversation?.token || providedToken;
-  if (!clientToken) {
-    clientToken = generateToken();
-  }
-
-  const message = {
-    id: crypto.randomUUID(),
+  const result = await appendConversationMessage(env, {
+    conversation,
     conversationId,
     senderId,
     senderName,
     text,
     role,
+    clientToken: providedToken,
+  });
+
+  notifyWebhook(result.message, payload, env, ctx);
+
+  return jsonResponse(
+    { ok: true, message: result.message, clientToken: result.clientToken },
+    200,
+    request,
+    env
+  );
+}
+
+async function appendConversationMessage(env, input) {
+  const conversation = input.conversation || await readConversation(env, input.conversationId);
+  const messages = parseMessagesJson(conversation?.messagesJson);
+
+  if (input.requestId) {
+    const existing = messages.find((message) => message.requestId === input.requestId);
+    if (existing) {
+      return {
+        message: existing,
+        clientToken: conversation?.token || "",
+        duplicate: true,
+      };
+    }
+  }
+
+  if (input.replyToMessageId) {
+    const target = messages.find(
+      (message) => message.id === input.replyToMessageId && !message.deletedAt
+    );
+    if (!target) {
+      throw new HttpError(400, "replyToMessageId does not match a visible message");
+    }
+  }
+
+  const now = Date.now();
+  const clientToken = conversation?.token || input.clientToken || generateToken();
+  const message = {
+    id: crypto.randomUUID(),
+    conversationId: input.conversationId,
+    senderId: input.senderId,
+    senderName: input.senderName,
+    text: input.text,
+    role: input.role,
     createdAt: now,
+    ...(input.replyToMessageId ? { replyToMessageId: input.replyToMessageId } : {}),
+    ...(input.requestId ? { requestId: input.requestId } : {}),
   };
 
-  const conversationName = conversation?.name || senderName || `Guest ${conversationId}`;
-  const messages = parseMessagesJson(conversation?.messagesJson);
   messages.push(message);
   const trimmed = messages.length > MAX_MESSAGES ? messages.slice(-MAX_MESSAGES) : messages;
-
-  const upsertConversation = env.DB.prepare(
+  const conversationName = conversation?.name || input.senderName || `Guest ${input.conversationId}`;
+  await env.DB.prepare(
     `INSERT INTO conversations (
       id,
       name,
@@ -454,27 +629,18 @@ async function handlePostMessage(request, env, ctx) {
       token = COALESCE(conversations.token, excluded.token),
       messages_json = excluded.messages_json`
   ).bind(
-    conversationId,
+    input.conversationId,
     conversationName,
     now,
     now,
-    previewText(text),
-    role,
-    senderName,
+    previewText(input.text),
+    input.role,
+    input.senderName,
     clientToken,
     JSON.stringify(trimmed)
-  );
+  ).run();
 
-  await upsertConversation.run();
-
-  notifyWebhook(message, payload, env, ctx);
-
-  return jsonResponse(
-    { ok: true, message, clientToken },
-    200,
-    request,
-    env
-  );
+  return { message, clientToken, duplicate: false };
 }
 
 async function handlePatchMessage(request, env) {
@@ -727,6 +893,8 @@ function normalizeMessage(message) {
     deletedAt: message.deletedAt || null,
     deletedBy: message.deletedBy || "",
     originalText: message.originalText || "",
+    replyToMessageId: message.replyToMessageId || "",
+    requestId: message.requestId || "",
   };
 }
 
@@ -795,6 +963,37 @@ function ensureDb(env) {
   }
 }
 
+function stringField(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function parsePositiveInteger(value, fallback) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+async function verifySecret(provided, expected) {
+  const encoder = new TextEncoder();
+  const [providedHash, expectedHash] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(provided)),
+    crypto.subtle.digest("SHA-256", encoder.encode(expected)),
+  ]);
+  return crypto.subtle.timingSafeEqual(providedHash, expectedHash);
+}
+
+async function requireBot(request, env) {
+  const configured = stringField(env.BOT_API_KEY);
+  if (!configured) {
+    throw new HttpError(503, "Bot API not configured");
+  }
+  const authorization = request.headers.get("Authorization") || "";
+  const bearer = authorization.match(/^Bearer\s+(.+)$/i);
+  const provided = stringField(bearer?.[1]) || stringField(request.headers.get("X-Bot-Key"));
+  if (!provided || !(await verifySecret(provided, configured))) {
+    throw new HttpError(401, "Unauthorized");
+  }
+}
+
 
 function isAdminRequest(request, env) {
   if (!env.ADMIN_KEY) {
@@ -841,7 +1040,7 @@ function corsHeaders(request, env) {
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
     "Access-Control-Allow-Headers":
-      requestedHeaders || "Content-Type, X-Admin-Key, X-Client-Token",
+      requestedHeaders || "Authorization, Content-Type, X-Admin-Key, X-Bot-Key, X-Client-Token",
     "Access-Control-Max-Age": "86400",
   };
 

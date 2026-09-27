@@ -74,6 +74,19 @@ a { color: var(--accent); }
   gap: 8px;
 }
 
+.notification-button {
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.notification-button:hover,
+.notification-button:focus-visible { border-color: var(--accent); color: var(--accent); }
+
 /* ── Page layout ─────────────────────────────────────────────────────── */
 .support-chat-root {
   display: flex;
@@ -156,9 +169,32 @@ a { color: var(--accent); }
 .empty-state {
   text-align: center;
   color: var(--muted);
-  margin-top: 20%;
+  margin: auto;
+  max-width: 560px;
+  padding: 28px 16px;
   font-size: 0.95rem;
 }
+.empty-state h1 { margin: 0 0 8px; color: var(--text); font-size: 1.35rem; }
+.empty-state p { margin: 0 auto 18px; max-width: 460px; line-height: 1.5; }
+
+.starter-prompts {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.starter-prompts button {
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: var(--panel-bg);
+  color: var(--text);
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.starter-prompts button:hover,
+.starter-prompts button:focus-visible { border-color: var(--accent); color: var(--accent); }
 
 /* ── Messages ────────────────────────────────────────────────────────── */
 .message {

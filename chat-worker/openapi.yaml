@@ -1,0 +1,170 @@
+openapi: 3.1.0
+info:
+  title: BSS Wiki AI support bot API
+  version: 1.0.0
+  description: Read support conversations that need a response and post bot replies.
+servers:
+  - url: https://bsm-api.sm0ke.org
+security:
+  - botBearer: []
+paths:
+  /api/bot/inbox:
+    get:
+      summary: List conversations waiting for a reply
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+      responses:
+        "200":
+          description: Conversations whose latest message is from a visitor.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conversations, hasMore]
+                properties:
+                  conversations:
+                    type: array
+                    items: { $ref: "#/components/schemas/ConversationSummary" }
+                  hasMore: { type: boolean }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/NotConfigured" }
+  /api/bot/conversations/{conversationId}:
+    get:
+      summary: Read visible messages in one conversation
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 200 }
+      responses:
+        "200":
+          description: Conversation context.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conversation, messages, hasMore]
+                properties:
+                  conversation: { $ref: "#/components/schemas/Conversation" }
+                  messages:
+                    type: array
+                    items: { $ref: "#/components/schemas/Message" }
+                  hasMore: { type: boolean }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/NotConfigured" }
+  /api/bot/replies:
+    post:
+      summary: Add an AI support reply
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [conversationId, text, requestId]
+              properties:
+                conversationId: { type: string, minLength: 1 }
+                text: { type: string, minLength: 1, maxLength: 8000 }
+                requestId:
+                  type: string
+                  minLength: 1
+                  maxLength: 128
+                  description: Stable ID used to make retries idempotent.
+                replyToMessageId: { type: string }
+                botId: { type: string, default: ai-support-bot }
+                botName: { type: string, default: AI Support }
+      responses:
+        "201":
+          description: Reply created.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReplyResult" }
+        "200":
+          description: The request ID was already used. The existing reply is returned.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReplyResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/NotConfigured" }
+components:
+  securitySchemes:
+    botBearer:
+      type: http
+      scheme: bearer
+  parameters:
+    ConversationId:
+      name: conversationId
+      in: path
+      required: true
+      schema: { type: string }
+  schemas:
+    ConversationSummary:
+      type: object
+      required: [id, name, createdAt, lastMessageAt, lastMessagePreview, lastMessageSenderName]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        createdAt: { type: integer }
+        lastMessageAt: { type: integer }
+        lastMessagePreview: { type: string }
+        lastMessageSenderName: { type: string }
+    Conversation:
+      type: object
+      required: [id, name, createdAt, lastMessageAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        createdAt: { type: integer }
+        lastMessageAt: { type: integer }
+    Message:
+      type: object
+      required: [id, conversationId, senderId, senderName, text, role, createdAt]
+      properties:
+        id: { type: string }
+        conversationId: { type: string }
+        senderId: { type: string }
+        senderName: { type: string }
+        text: { type: string }
+        role: { type: string, enum: [user, support, system] }
+        createdAt: { type: integer }
+        editedAt: { type: [integer, "null"] }
+        replyToMessageId: { type: string }
+        requestId: { type: string }
+    ReplyResult:
+      type: object
+      required: [ok, duplicate, message]
+      properties:
+        ok: { type: boolean, const: true }
+        duplicate: { type: boolean }
+        message: { $ref: "#/components/schemas/Message" }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+  responses:
+    BadRequest:
+      description: Invalid request.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing or invalid bot key.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Conversation not found.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotConfigured:
+      description: BOT_API_KEY has not been configured on the Worker.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }

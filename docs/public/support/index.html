@@ -33,6 +33,7 @@
       <span>BSS Wiki</span>
     </a>
     <div class="support-nav-status">
+      <button class="notification-button" id="notification-button" type="button" hidden>Notify me</button>
       <span class="status-pill status-warn" id="status-pill">Connecting</span>
     </div>
   </header>
@@ -49,19 +50,25 @@
 
       <div class="chat-log" id="chat-log">
         <div class="empty-state" id="empty-state">
-          <p>Say hello and our support team will jump in.</p>
+          <h1>What can we help with?</h1>
+          <p>Describe what went wrong and what you have already tried. A screenshot usually helps.</p>
+          <div class="starter-prompts" aria-label="Suggested messages">
+            <button type="button" data-prompt="I need help modding Beat Saber on Quest. ">Quest modding</button>
+            <button type="button" data-prompt="Beat Saber is crashing. Here is what happens: ">Game crash</button>
+            <button type="button" data-prompt="A mod is not working. The mod and game versions are: ">Broken mod</button>
+          </div>
         </div>
       </div>
 
       <footer class="chat-input">
         <div class="input-wrap">
           <div class="input-field">
-            <button class="tool-btn inline" id="tool-image" type="button" title="Upload image">+</button>
-            <textarea id="message-input" rows="2" placeholder="Type a message or upload an image…"></textarea>
+            <button class="tool-btn inline" id="tool-image" type="button" title="Upload image" aria-label="Upload image">+</button>
+            <textarea id="message-input" rows="2" placeholder="Describe the problem…" aria-label="Message"></textarea>
           </div>
           <div class="input-hint" id="input-hint">Shift + Enter for a new line.</div>
         </div>
-        <button class="send-button" id="send-button" type="button">›</button>
+        <button class="send-button" id="send-button" type="button" aria-label="Send message" title="Send message">›</button>
       </footer>
     </section>
   </div>
@@ -81,6 +88,7 @@
       toolImage: document.getElementById("tool-image"),
       hint: document.getElementById("input-hint"),
       imgurInput: document.getElementById("imgur-input"),
+      notification: document.getElementById("notification-button"),
     };
 
     const CHAT_API_BASE = "https://bsm-api.sm0ke.org";
@@ -90,7 +98,6 @@
     const STORAGE_KEYS = {
       userId: "supportChatUserId",
       token: "supportChatToken",
-      intro: "supportChatIntroSent",
       notifyAsked: "supportChatNotifyAsked",
     };
 
@@ -178,8 +185,13 @@
         const perm = await Notification.requestPermission();
         track("support_chat_notification_permission", { permission: perm, prompt_mode: force ? "forced" : "automatic" });
         if (perm === "default") { notificationPrompted = false; localStorage.removeItem(STORAGE_KEYS.notifyAsked); }
+        ui.notification.hidden = perm !== "default";
         return perm === "granted";
       } catch { return false; }
+    }
+
+    function refreshNotificationButton() {
+      ui.notification.hidden = !("Notification" in window) || Notification.permission !== "default";
     }
 
     function playNotificationSound() {
@@ -289,7 +301,11 @@
       return wrapper;
     }
 
-    function updateEmptyState() { ui.empty.style.display = state.renderedIds.size ? "none" : "block"; }
+    function updateEmptyState() {
+      const hasMessages = state.renderedIds.size > 0;
+      if (!hasMessages && !ui.empty.isConnected) ui.log.appendChild(ui.empty);
+      ui.empty.style.display = hasMessages ? "none" : "block";
+    }
     function isNearBottom() { return (ui.log.scrollHeight - ui.log.scrollTop - ui.log.clientHeight) < 120; }
     function scrollToBottom() { ui.log.scrollTop = ui.log.scrollHeight; }
 
@@ -297,7 +313,7 @@
       const prev = state.lastMessageAt;
       const offset = ui.log.scrollHeight - ui.log.scrollTop;
       const had = state.renderedIds.size > 0;
-      ui.log.innerHTML = ""; state.renderedIds = new Set(); state.lastDayKey = ""; state.lastMessageAt = 0; state.messageMap.clear();
+      ui.log.innerHTML = ""; ui.log.appendChild(ui.empty); state.renderedIds = new Set(); state.lastDayKey = ""; state.lastMessageAt = 0; state.messageMap.clear();
       appendMessages(messages, forceScroll, prev, true);
       if (!had || forceScroll) { scrollToBottom(); } else { ui.log.scrollTop = Math.max(0, ui.log.scrollHeight - offset); }
       if (!analyticsState.historyTracked) {
@@ -452,17 +468,6 @@
       playNotificationSound();
     }
 
-    async function sendIntroMessage() {
-      const introSent = localStorage.getItem(STORAGE_KEYS.intro) === "true";
-      const text = introSent
-        ? `Chat session resumed. User ID: ${state.userId}`
-        : `Hello, I need assistance. I have tried turning off/on and waiting and I read the faq at https://wiki.sm0ke.org/faq`;
-      const data = await postMessage(text, "system");
-      localStorage.setItem(STORAGE_KEYS.intro, "true");
-      track("support_chat_intro_sent", { intro_mode: introSent ? "resume" : "first_contact" });
-      if (data && data.message) appendMessages([data.message], true, state.lastMessageAt);
-    }
-
     async function handleSend() {
       const text = ui.input.value.trim();
       if (!text) return;
@@ -472,6 +477,7 @@
         const data = await postMessage(text, "user");
         ui.input.value = ""; autoResizeTextarea();
         if (data && data.message) appendMessages([data.message], true, state.lastMessageAt);
+        if (!eventSource && state.clientToken) startStream();
         track("support_chat_message_send", { message_type: metrics.imageCount ? (metrics.hasText ? "mixed" : "image") : "text", char_count: metrics.charCount, word_count: metrics.wordCount, image_count: metrics.imageCount, success: true });
         setStatus("Online", "ok");
       } catch {
@@ -486,6 +492,7 @@
       try {
         const data = await postMessage(urls, "user");
         if (data && data.message) appendMessages([data.message], true, state.lastMessageAt);
+        if (!eventSource && state.clientToken) startStream();
         track("support_chat_message_send", { message_type: "image", success: true });
       } catch {
         track("support_chat_message_send", { message_type: "image", success: false });
@@ -585,19 +592,17 @@
       }
       setStatus("Connecting", "warn");
       try {
-        if (!state.clientToken) await sendIntroMessage();
         await loadMessages();
         setStatus("Online", "ok");
       } catch {
         track("support_chat_bootstrap_error", { has_token: Boolean(state.clientToken) });
         setStatus("Offline", "error");
       }
-      if (!startStream()) schedulePoll();
-      attemptNotificationPrompt().catch(() => {});
+      if (!state.clientToken || !startStream()) schedulePoll();
+      refreshNotificationButton();
     }
 
     document.addEventListener("click", () => {
-      attemptNotificationPrompt(true).catch(() => {});
       if (notificationSound && notificationSound.state === "suspended") notificationSound.resume().catch(() => {});
     }, { once: true });
 
@@ -606,6 +611,14 @@
     ui.input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } });
     ui.toolImage.addEventListener("click", () => ui.imgurInput.click());
     ui.imgurInput.addEventListener("change", handleImageUpload);
+    ui.notification.addEventListener("click", () => attemptNotificationPrompt(true).catch(() => {}));
+    ui.empty.addEventListener("click", e => {
+      const button = e.target.closest("[data-prompt]");
+      if (!button) return;
+      ui.input.value = button.dataset.prompt || "";
+      autoResizeTextarea();
+      ui.input.focus();
+    });
 
     autoResizeTextarea();
     bootstrap();
