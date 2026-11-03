@@ -18,7 +18,7 @@
   </script>
   <!-- HTTPS redirect -->
   <script>
-    if (location.protocol === "http:" && location.hostname.endsWith("sm0ke.org")) {
+    if (location.protocol === "http:" && (location.hostname === "sm0ke.org" || location.hostname.endsWith(".sm0ke.org"))) {
       location.replace("https://" + location.host + location.pathname + location.search + location.hash);
     }
   </script>
@@ -44,7 +44,7 @@
       <div class="chat-status">
         <div class="chat-id">Chat ID <span id="chat-id"></span></div>
         <div class="status-block">
-          <span class="status-pill status-error presence-pill" id="presence-pill">Support offline</span>
+          <span class="status-pill status-warn presence-pill" id="presence-pill" role="status">Checking support…</span>
         </div>
       </div>
 
@@ -83,6 +83,7 @@
       input: document.getElementById("message-input"),
       send: document.getElementById("send-button"),
       status: document.getElementById("status-pill"),
+      presence: document.getElementById("presence-pill"),
       chatId: document.getElementById("chat-id"),
       empty: document.getElementById("empty-state"),
       toolImage: document.getElementById("tool-image"),
@@ -95,6 +96,7 @@
     const UPLOAD_API_PATH = "/api/uploads";
     const POLL_INTERVAL_MS = 4000;
     const POLL_IDLE_MS = 12000;
+    const PRESENCE_INTERVAL_MS = 30000;
     const STORAGE_KEYS = {
       userId: "supportChatUserId",
       token: "supportChatToken",
@@ -107,6 +109,11 @@
       clientToken: localStorage.getItem(STORAGE_KEYS.token) || "",
       displayName: "",
       lastMessageAt: 0,
+      syncCursor: null,
+      revisions: new Map(),
+      sending: false,
+      uploading: false,
+      draftRevision: 0,
       renderedIds: new Set(),
       lastDayKey: "",
       messageMap: new Map(),
@@ -128,6 +135,11 @@
     let eventSource = null;
     let notificationPrompted = false;
     let notificationSound = null;
+    let presenceTimer = null;
+    let hintTimer = null;
+    let disposed = false;
+    let lifecycle = 0;
+    let requests = new AbortController();
 
     function getOrCreateUserId() {
       const existing = localStorage.getItem(STORAGE_KEYS.userId);
@@ -166,12 +178,58 @@
     }
 
     function setHint(msg, tone) {
+      if (disposed) return;
+      clearTimeout(hintTimer);
+      hintTimer = null;
       ui.hint.textContent = msg;
       ui.hint.classList.remove("warn", "error", "ok");
       if (tone) ui.hint.classList.add(tone);
     }
 
-    function resetHint() { setHint(defaultHint); }
+    function resetHint() { if (!disposed) setHint(defaultHint); }
+    function resetHintLater() {
+      if (disposed) return;
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(resetHint, 2500);
+    }
+
+    function setPresence(online) {
+      ui.presence.classList.remove("status-ok", "status-warn", "status-error");
+      ui.presence.classList.add(online === true ? "status-ok" : "status-warn");
+      ui.presence.textContent = online === true ? "Support online" : online === false ? "Support offline" : "Support status unavailable";
+    }
+
+    async function refreshPresence() {
+      const cycle = lifecycle;
+      try {
+        const data = await fetchJson(apiUrl("/api/presence"));
+        if (disposed || cycle !== lifecycle) return;
+        setPresence(typeof data.online === "boolean" ? data.online : null);
+      } catch {
+        if (disposed || cycle !== lifecycle) return;
+        setPresence(null);
+      } finally {
+        if (!disposed && cycle === lifecycle) presenceTimer = setTimeout(refreshPresence, PRESENCE_INTERVAL_MS);
+      }
+    }
+
+    function refreshComposer() {
+      const busy = disposed || state.sending || state.uploading;
+      ui.send.disabled = busy;
+      ui.toolImage.disabled = busy;
+      ui.input.disabled = disposed || state.uploading;
+    }
+
+    function changeDraft(value) {
+      ui.input.value = value;
+      state.draftRevision++;
+      autoResizeTextarea();
+    }
+
+    function preserveImageLinks(links) {
+      const missing = links.filter(link => !ui.input.value.includes(link));
+      if (missing.length) changeDraft([ui.input.value, ...missing].filter(Boolean).join(" "));
+    }
 
     async function attemptNotificationPrompt(force = false) {
       if (!("Notification" in window)) return false;
@@ -214,19 +272,19 @@
       ui.input.style.height = Math.max(Math.min(ui.input.scrollHeight, TEXTAREA_MAX_HEIGHT), TEXTAREA_MIN_HEIGHT) + "px";
     }
 
-    function disableComposer(msg) {
-      ui.input.disabled = true; ui.send.disabled = true; ui.toolImage.disabled = true;
-      ui.input.placeholder = msg; ui.input.value = ""; autoResizeTextarea();
-    }
-
     function apiUrl(path) { return CHAT_API_BASE.replace(/\/+$/, "") + path; }
 
     async function fetchJson(url, options = {}) {
-      const res = await fetch(url, options);
+      if (disposed) throw new DOMException("Page closed", "AbortError");
+      const signal = requests.signal;
+      const cycle = lifecycle;
+      const res = await fetch(url, { ...options, signal });
       const text = await res.text();
-      let data = {};
-      try { if (text) data = JSON.parse(text); } catch {}
-      if (!res.ok) throw new Error(data.error || res.statusText || "Request failed");
+      if (signal.aborted || disposed || cycle !== lifecycle) throw new DOMException("Page closed", "AbortError");
+      let data;
+      try { data = JSON.parse(text); } catch {}
+      if (!res.ok) throw new Error(data?.error || res.statusText || "Request failed");
+      if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Invalid server response");
       return data;
     }
 
@@ -310,12 +368,8 @@
     function scrollToBottom() { ui.log.scrollTop = ui.log.scrollHeight; }
 
     function renderMessages(messages, forceScroll) {
-      const prev = state.lastMessageAt;
-      const offset = ui.log.scrollHeight - ui.log.scrollTop;
-      const had = state.renderedIds.size > 0;
-      ui.log.innerHTML = ""; ui.log.appendChild(ui.empty); state.renderedIds = new Set(); state.lastDayKey = ""; state.lastMessageAt = 0; state.messageMap.clear();
-      appendMessages(messages, forceScroll, prev, true);
-      if (!had || forceScroll) { scrollToBottom(); } else { ui.log.scrollTop = Math.max(0, ui.log.scrollHeight - offset); }
+      // Merge history too: a delayed initial GET must not erase a just-sent message.
+      appendMessages(messages, forceScroll, 0);
       if (!analyticsState.historyTracked) {
         analyticsState.historyTracked = true;
         const s = summarizeMessages(messages);
@@ -323,10 +377,28 @@
       }
     }
 
+    function refreshMessageLog(forceScroll) {
+      const nearBottom = isNearBottom();
+      const offset = ui.log.scrollHeight - ui.log.scrollTop;
+      ui.log.replaceChildren(ui.empty);
+      state.lastDayKey = "";
+      const messages = [...state.messageMap.values()].sort((a, b) =>
+        (a.createdAt || 0) - (b.createdAt || 0) || (a.createdSeq || 0) - (b.createdSeq || 0)
+      );
+      for (const message of messages) {
+        const key = dayKey(message.createdAt);
+        if (key && key !== state.lastDayKey) { appendDayDivider(message.createdAt); state.lastDayKey = key; }
+        ui.log.appendChild(buildMessageElement(message));
+      }
+      updateEmptyState();
+      if (forceScroll || nearBottom) scrollToBottom();
+      else ui.log.scrollTop = Math.max(0, ui.log.scrollHeight - offset);
+    }
+
     function summarizeMessages(messages) {
       const s = { totalCount: 0, supportCount: 0, systemCount: 0, userCount: 0, imageMessageCount: 0, textMessageCount: 0 };
       (messages || []).forEach(m => {
-        if (!m || !m.id || m.deletedAt) return;
+        if (!m || !m.id || m.deleted || m.deletedAt) return;
         s.totalCount++;
         if (m.role === "support") s.supportCount++; else if (m.role === "system") s.systemCount++; else s.userCount++;
         const met = messageMetrics(m.text || "");
@@ -336,38 +408,70 @@
       return s;
     }
 
-    function appendMessages(messages, forceScroll, prevLast = 0, skipScroll = false) {
-      if (!Array.isArray(messages) || !messages.length) { updateEmptyState(); return; }
-      const sorted = [...messages].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-      let hasNew = false;
+    function appendMessages(messages, forceScroll, prevLast = 0) {
+      if (!Array.isArray(messages)) return;
+      let changed = false;
       const newIncoming = [];
-      sorted.forEach(message => {
-        if (!message || !message.id || state.renderedIds.has(message.id)) return;
-        const k = dayKey(message.createdAt);
-        if (k && k !== state.lastDayKey) { appendDayDivider(message.createdAt); state.lastDayKey = k; }
-        state.renderedIds.add(message.id);
-        ui.log.appendChild(buildMessageElement(message));
-        state.lastMessageAt = Math.max(state.lastMessageAt, message.createdAt || 0);
-        state.messageMap.set(message.id, message);
-        if (shouldNotify(message, prevLast)) { state.notifiedIds.add(message.id); notifyMessage(message); }
-        if (prevLast && (message.createdAt || 0) > prevLast && message.role !== "user") newIncoming.push(message);
-        hasNew = true;
-      });
-      if (!skipScroll && hasNew && (forceScroll || isNearBottom())) scrollToBottom();
-      updateEmptyState();
+      for (const message of messages) {
+        if (!message || !message.id) continue;
+        const revision = Number(message.changeSeq) || Math.max(message.editedAt || 0, message.deletedAt || 0, message.createdAt || 0);
+        const known = state.revisions.has(message.id);
+        if (known && revision <= state.revisions.get(message.id)) continue;
+        // Keep tombstone revisions so a delayed poll cannot resurrect a deletion.
+        state.revisions.set(message.id, revision);
+        if (message.deleted || message.deletedAt) {
+          state.renderedIds.delete(message.id);
+          state.messageMap.delete(message.id);
+        } else {
+          state.renderedIds.add(message.id);
+          state.messageMap.set(message.id, message);
+          state.lastMessageAt = Math.max(state.lastMessageAt, message.createdAt || 0);
+          if (!known && shouldNotify(message, prevLast)) { state.notifiedIds.add(message.id); notifyMessage(message); }
+          if (!known && prevLast && (message.createdAt || 0) > prevLast && message.role !== "user") newIncoming.push(message);
+        }
+        changed = true;
+      }
+      if (changed) refreshMessageLog(forceScroll);
+      else updateEmptyState();
       if (newIncoming.length) {
         const s = summarizeMessages(newIncoming);
         track("support_chat_messages_received", { batch_count: s.totalCount, support_count: s.supportCount, system_count: s.systemCount, image_message_count: s.imageMessageCount, text_message_count: s.textMessageCount, transport_mode: analyticsState.transportMode });
       }
     }
 
+    function acceptCursor(payload) {
+      if (Number.isSafeInteger(payload.cursor) && payload.cursor >= 0) {
+        state.syncCursor = Math.max(state.syncCursor || 0, payload.cursor);
+      }
+    }
+
+    async function ensureClientToken() {
+      const saved = localStorage.getItem(STORAGE_KEYS.token);
+      if (saved) { state.clientToken = saved; return; }
+      // A tokenless GET succeeds only for a conversation that does not exist.
+      // Never replace credentials for existing tokenless history on a 403.
+      const params = new URLSearchParams({ conversationId: state.conversationId });
+      await fetchJson(apiUrl(`/api/messages?${params}`));
+      const token = localStorage.getItem(STORAGE_KEYS.token) || Array.from(
+        crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, "0")
+      ).join("");
+      // Persist before creation: losing the POST response must not lose access.
+      localStorage.setItem(STORAGE_KEYS.token, token);
+      state.clientToken = token;
+    }
+
     async function postMessage(text, role) {
+      if (!state.clientToken) await ensureClientToken();
       const headers = { "Content-Type": "application/json" };
       if (state.clientToken) headers["X-Client-Token"] = state.clientToken;
       const data = await fetchJson(apiUrl("/api/messages"), {
         method: "POST", headers,
         body: JSON.stringify({ conversationId: state.conversationId, senderId: state.userId, senderName: state.displayName, text, role, clientToken: state.clientToken }),
       });
+      if (!data.message || typeof data.message.id !== "string" || !data.message.id || typeof data.message.text !== "string") {
+        throw new Error("Message was not acknowledged");
+      }
+      if (data.clientToken && typeof data.clientToken !== "string") throw new Error("Invalid client token");
       if (data.clientToken && data.clientToken !== state.clientToken) {
         state.clientToken = data.clientToken;
         localStorage.setItem(STORAGE_KEYS.token, data.clientToken);
@@ -382,32 +486,28 @@
         method: "PATCH", headers,
         body: JSON.stringify({ conversationId: state.conversationId, messageId, text, senderId: state.userId, clientToken: state.clientToken }),
       });
-      if (data && data.message) { state.messageMap.set(data.message.id, data.message); replaceMessageNode(data.message); }
+      if (!disposed && data && data.message) appendMessages([data.message], false);
     }
 
     async function deleteMessage(messageId) {
       const headers = { "Content-Type": "application/json" };
       if (state.clientToken) headers["X-Client-Token"] = state.clientToken;
-      await fetchJson(apiUrl("/api/messages"), {
+      const data = await fetchJson(apiUrl("/api/messages"), {
         method: "DELETE", headers,
         body: JSON.stringify({ conversationId: state.conversationId, messageId, senderId: state.userId, clientToken: state.clientToken }),
       });
-      removeMessageNode(messageId);
-    }
-
-    function replaceMessageNode(message) {
-      const existing = ui.log.querySelector(`[data-id="${message.id}"]`);
-      const node = buildMessageElement(message);
-      if (existing) existing.replaceWith(node); else { state.renderedIds.add(message.id); ui.log.appendChild(node); }
-    }
-
-    function removeMessageNode(id) {
-      const el = ui.log.querySelector(`[data-id="${id}"]`);
-      if (el) el.remove();
-      state.renderedIds.delete(id); state.messageMap.delete(id); updateEmptyState();
+      if (disposed) return;
+      if (data && data.message) appendMessages([data.message], false);
+      else {
+        state.renderedIds.delete(messageId);
+        state.messageMap.delete(messageId);
+        refreshMessageLog(false);
+      }
     }
 
     async function handleEditMessage(message) {
+      if (disposed) return;
+      const cycle = lifecycle;
       const current = message.text || "";
       const next = window.prompt("Edit message:", current);
       if (next === null) return;
@@ -416,43 +516,55 @@
       setHint("Saving edit...", "warn");
       try {
         await updateMessage(message.id, trimmed);
+        if (disposed || cycle !== lifecycle) return;
         track("support_chat_message_edit", { before_char_count: current.trim().length, after_char_count: trimmed.length, success: true });
         setHint("Message updated.", "ok");
       } catch {
+        if (disposed || cycle !== lifecycle) return;
         track("support_chat_message_edit", { before_char_count: current.trim().length, after_char_count: trimmed.length, success: false });
         setHint("Edit failed.", "error");
-      } finally { setTimeout(resetHint, 2500); }
+      } finally { if (!disposed && cycle === lifecycle) resetHintLater(); }
     }
 
     async function handleDeleteMessage(message) {
+      if (disposed) return;
+      const cycle = lifecycle;
       if (!window.confirm("Delete this message?")) return;
       setHint("Deleting message...", "warn");
       try {
         await deleteMessage(message.id);
+        if (disposed || cycle !== lifecycle) return;
         track("support_chat_message_delete", { success: true });
         setHint("Message deleted.", "ok");
       } catch {
+        if (disposed || cycle !== lifecycle) return;
         track("support_chat_message_delete", { success: false });
         setHint("Delete failed.", "error");
-      } finally { setTimeout(resetHint, 2500); }
+      } finally { if (!disposed && cycle === lifecycle) resetHintLater(); }
     }
 
     async function loadMessages({ incremental = false } = {}) {
-      const params = new URLSearchParams({ conversationId: state.conversationId });
-      if (state.clientToken) params.set("token", state.clientToken);
-      if (incremental && state.lastMessageAt) params.set("after", String(state.lastMessageAt));
-      const data = await fetchJson(apiUrl(`/api/messages?${params}`));
-      if (incremental) {
-        const prev = state.lastMessageAt;
-        appendMessages(data.messages || [], false, prev);
+      const cycle = lifecycle;
+      let more = true;
+      while (more && !disposed && cycle === lifecycle) {
+        const params = new URLSearchParams({ conversationId: state.conversationId });
+        if (state.clientToken) params.set("token", state.clientToken);
+        const requestedCursor = state.syncCursor || 0;
+        if (incremental) params.set("cursor", String(requestedCursor));
+        const data = await fetchJson(apiUrl(`/api/messages?${params}`));
+        if (disposed || cycle !== lifecycle) return;
+        if (incremental) appendMessages(data.messages || [], false, state.lastMessageAt);
+        else renderMessages(data.messages || [], false);
+        acceptCursor(data);
         idlePolls = (data.messages && data.messages.length) ? 0 : Math.min(idlePolls + 1, 5);
-        return;
+        more = data.hasMore === true;
+        if (more && state.syncCursor <= requestedCursor) throw new Error("Message cursor did not advance");
+        incremental = true;
       }
-      renderMessages(data.messages || [], false);
     }
 
     function shouldNotify(message, prev) {
-      if (!message || message.role === "user" || message.deletedAt) return false;
+      if (!message || message.role === "user" || message.deleted || message.deletedAt) return false;
       if (!prev || message.createdAt <= prev) return false;
       if (state.notifiedIds.has(message.id)) return false;
       if (document.hasFocus()) return false;
@@ -469,35 +581,41 @@
     }
 
     async function handleSend() {
-      const text = ui.input.value.trim();
+      if (disposed || state.sending || state.uploading) return;
+      const snapshot = ui.input.value;
+      const revision = state.draftRevision;
+      const text = snapshot.trim();
       if (!text) return;
+      const cycle = lifecycle;
       const metrics = messageMetrics(text);
-      ui.send.disabled = true;
+      state.sending = true;
+      refreshComposer();
       try {
         const data = await postMessage(text, "user");
-        ui.input.value = ""; autoResizeTextarea();
+        if (disposed || cycle !== lifecycle) return;
+        if (ui.input.value === snapshot && state.draftRevision === revision) changeDraft("");
         if (data && data.message) appendMessages([data.message], true, state.lastMessageAt);
         if (!eventSource && state.clientToken) startStream();
         track("support_chat_message_send", { message_type: metrics.imageCount ? (metrics.hasText ? "mixed" : "image") : "text", char_count: metrics.charCount, word_count: metrics.wordCount, image_count: metrics.imageCount, success: true });
+        resetHint();
         setStatus("Online", "ok");
       } catch {
+        if (disposed || cycle !== lifecycle) return;
         track("support_chat_message_send", { message_type: "text", char_count: metrics.charCount, word_count: metrics.wordCount, success: false });
         setStatus("Send failed", "error");
-      } finally { ui.send.disabled = false; }
+        setHint("Send failed. Your draft is ready to retry.", "error");
+      } finally {
+        if (cycle === lifecycle) { state.sending = false; refreshComposer(); }
+      }
     }
 
     async function sendImageMessage(urls) {
-      if (!urls) return;
-      ui.send.disabled = true;
-      try {
-        const data = await postMessage(urls, "user");
-        if (data && data.message) appendMessages([data.message], true, state.lastMessageAt);
-        if (!eventSource && state.clientToken) startStream();
-        track("support_chat_message_send", { message_type: "image", success: true });
-      } catch {
-        track("support_chat_message_send", { message_type: "image", success: false });
-        setHint("Image send failed.", "error");
-      } finally { ui.send.disabled = false; }
+      // Let the upload flow handle failures, preserving the uploaded URL for retry.
+      const data = await postMessage(urls, "user");
+      if (disposed) return;
+      if (data && data.message) appendMessages([data.message], true, state.lastMessageAt);
+      if (!eventSource && state.clientToken) startStream();
+      track("support_chat_message_send", { message_type: "image", success: true });
     }
 
     async function uploadImage(file) {
@@ -509,72 +627,106 @@
     }
 
     async function handleImageUpload() {
+      if (disposed || state.sending || state.uploading) return;
       const files = Array.from(ui.imgurInput.files || []);
       ui.imgurInput.value = "";
       if (!files.length) return;
-      const hadDraft = Boolean(ui.input.value.trim());
-      track("support_chat_image_upload_start", { file_count: files.length, draft_text_present: hadDraft });
+      const cycle = lifecycle;
+      const links = [];
+      let sendingImage = false;
+      state.uploading = true;
+      refreshComposer();
+      track("support_chat_image_upload_start", { file_count: files.length, draft_text_present: Boolean(ui.input.value.trim()) });
       setHint("Uploading image...", "warn");
-      ui.send.disabled = true; ui.input.disabled = true; ui.toolImage.disabled = true;
       try {
-        const links = [];
-        for (const f of files) links.push(await uploadImage(f));
-        const joined = links.join(" ");
+        for (const file of files) {
+          links.push(await uploadImage(file));
+          if (disposed || cycle !== lifecycle) return;
+        }
         if (ui.input.value.trim()) {
-          ui.input.value = `${ui.input.value.trim()} ${joined}`;
-          setHint("Image added.", "ok"); autoResizeTextarea();
+          preserveImageLinks(links);
+          setHint("Image added.", "ok");
           track("support_chat_image_upload_complete", { file_count: files.length, delivery: "draft", success: true });
         } else {
-          await sendImageMessage(joined);
+          sendingImage = true;
+          // Keep the uploaded URL visible until delivery succeeds, including if
+          // navigation interrupts the POST and this page is restored from cache.
+          preserveImageLinks(links);
+          const snapshot = ui.input.value;
+          const revision = state.draftRevision;
+          await sendImageMessage(links.join(" "));
+          if (disposed || cycle !== lifecycle) return;
+          if (ui.input.value === snapshot && state.draftRevision === revision) changeDraft("");
           setHint("Image sent.", "ok");
           track("support_chat_image_upload_complete", { file_count: files.length, delivery: "sent", success: true });
         }
+        resetHintLater();
       } catch {
+        if (disposed || cycle !== lifecycle) return;
+        preserveImageLinks(links);
         track("support_chat_image_upload_complete", { file_count: files.length, success: false });
-        setHint("Image upload failed.", "error");
+        if (sendingImage) {
+          track("support_chat_message_send", { message_type: "image", success: false });
+          setHint("Image uploaded, but send failed. Press Send to retry.", "error");
+        } else {
+          setHint(links.length ? "Image upload failed. Already uploaded images are in your draft." : "Image upload failed. Choose the image to retry.", "error");
+        }
       } finally {
-        ui.send.disabled = false; ui.input.disabled = false; ui.toolImage.disabled = false;
-        setTimeout(resetHint, 2500);
+        if (cycle === lifecycle) { state.uploading = false; refreshComposer(); }
       }
     }
 
     function schedulePoll() {
-      if (eventSource) return;
+      if (disposed || eventSource) return;
       if (analyticsState.transportMode !== "poll") {
         analyticsState.transportMode = "poll";
         track("support_chat_transport_mode", { mode: "poll", reason: "fallback" });
       }
       if (pollTimer) clearTimeout(pollTimer);
-      pollTimer = setTimeout(() => {
-        loadMessages({ incremental: true }).catch(() => setStatus("Offline", "error")).finally(schedulePoll);
+      const cycle = lifecycle;
+      pollTimer = setTimeout(async () => {
+        pollTimer = null;
+        try {
+          await loadMessages({ incremental: true });
+          if (!disposed && cycle === lifecycle) setStatus("Online", "ok");
+        } catch {
+          if (!disposed && cycle === lifecycle) setStatus("Offline", "error");
+        } finally {
+          if (!disposed && cycle === lifecycle) schedulePoll();
+        }
       }, idlePolls > 2 ? POLL_IDLE_MS : POLL_INTERVAL_MS);
     }
 
     function startStream() {
-      if (!("EventSource" in window)) return false;
+      if (disposed || !("EventSource" in window)) return false;
       if (eventSource) eventSource.close();
       analyticsState.transportMode = "sse";
       track("support_chat_transport_mode", { mode: "sse", reason: "preferred" });
       const params = new URLSearchParams({ conversationId: state.conversationId });
       if (state.clientToken) params.set("token", state.clientToken);
-      if (state.lastMessageAt) params.set("after", String(state.lastMessageAt));
-      eventSource = new EventSource(apiUrl(`/api/stream?${params}`));
+      params.set("cursor", String(state.syncCursor || 0));
+      const stream = new EventSource(apiUrl(`/api/stream?${params}`));
+      eventSource = stream;
 
-      eventSource.addEventListener("messages", e => {
+      stream.addEventListener("messages", e => {
+        if (disposed || eventSource !== stream) return;
         let payload = {};
         try { payload = JSON.parse(e.data || "{}"); } catch {}
         const msgs = payload.messages || [];
         if (msgs.length) appendMessages(msgs, false, state.lastMessageAt);
+        acceptCursor(payload);
         setStatus("Online", "ok");
       });
 
-      eventSource.onopen = () => {
+      stream.onopen = () => {
+        if (disposed || eventSource !== stream) return;
         track("support_chat_connection_state", { state: "online", transport_mode: "sse" });
         setStatus("Online", "ok");
         if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
       };
 
-      eventSource.onerror = () => {
+      stream.onerror = () => {
+        if (disposed || eventSource !== stream) return;
         track("support_chat_connection_state", { state: "offline", transport_mode: "sse" });
         setStatus("Offline", "error");
         if (eventSource) { eventSource.close(); eventSource = null; }
@@ -586,15 +738,19 @@
     }
 
     async function bootstrap() {
+      const cycle = lifecycle;
+      refreshPresence();
       if (!analyticsState.opened) {
         analyticsState.opened = true;
         track("support_chat_open", { session_type: state.clientToken ? "returning" : "new" });
       }
       setStatus("Connecting", "warn");
       try {
-        await loadMessages();
+        await loadMessages({ incremental: state.syncCursor !== null });
+        if (disposed || cycle !== lifecycle) return;
         setStatus("Online", "ok");
       } catch {
+        if (disposed || cycle !== lifecycle) return;
         track("support_chat_bootstrap_error", { has_token: Boolean(state.clientToken) });
         setStatus("Offline", "error");
       }
@@ -607,17 +763,37 @@
     }, { once: true });
 
     ui.send.addEventListener("click", handleSend);
-    ui.input.addEventListener("input", autoResizeTextarea);
-    ui.input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } });
-    ui.toolImage.addEventListener("click", () => ui.imgurInput.click());
+    ui.input.addEventListener("input", () => { state.draftRevision++; autoResizeTextarea(); });
+    ui.input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); handleSend(); } });
+    ui.toolImage.addEventListener("click", () => { if (!disposed && !state.sending && !state.uploading) ui.imgurInput.click(); });
     ui.imgurInput.addEventListener("change", handleImageUpload);
     ui.notification.addEventListener("click", () => attemptNotificationPrompt(true).catch(() => {}));
     ui.empty.addEventListener("click", e => {
       const button = e.target.closest("[data-prompt]");
-      if (!button) return;
-      ui.input.value = button.dataset.prompt || "";
-      autoResizeTextarea();
+      if (!button || disposed || state.uploading) return;
+      changeDraft(button.dataset.prompt || "");
       ui.input.focus();
+    });
+
+    window.addEventListener("pagehide", () => {
+      disposed = true;
+      lifecycle++;
+      requests.abort();
+      clearTimeout(pollTimer);
+      clearTimeout(presenceTimer);
+      clearTimeout(hintTimer);
+      pollTimer = presenceTimer = hintTimer = null;
+      if (eventSource) { eventSource.close(); eventSource = null; }
+      if (notificationSound) { notificationSound.close().catch(() => {}); notificationSound = null; }
+      refreshComposer();
+    });
+    window.addEventListener("pageshow", e => {
+      if (!e.persisted || !disposed) return;
+      disposed = false;
+      requests = new AbortController();
+      state.sending = state.uploading = false;
+      refreshComposer();
+      bootstrap();
     });
 
     autoResizeTextarea();

@@ -455,7 +455,7 @@
   }
 
   function getNodeAtPath(path) {
-    return Troubleshooter.getNodeAtPath(state.data.root, path) || state.data.root;
+    return Troubleshooter.getNodeAtPath(state.data.root, path);
   }
 
   function getChoiceAtPath(choicePath) {
@@ -464,7 +464,7 @@
     }
     var parentPath = choicePath.slice(0, -1);
     var parentNode = getNodeAtPath(parentPath);
-    return parentNode.choices[choicePath[choicePath.length - 1]] || null;
+    return parentNode ? parentNode.choices[choicePath[choicePath.length - 1]] || null : null;
   }
 
   function selectFlow() {
@@ -517,9 +517,13 @@
         path: []
       };
     }
-    if (selected.type === "result" && getChoiceAtPath(selected.path)) {
+    if (!Array.isArray(selected.path)) {
+      return fallback;
+    }
+    var selectedChoice = getChoiceAtPath(selected.path);
+    if (selected.type === "result" && selectedChoice) {
       return {
-        type: "result",
+        type: selectedChoice.next ? "node" : "result",
         path: selected.path.slice()
       };
     }
@@ -1018,9 +1022,20 @@
   }
 
   function isPathPrefix(prefix, path) {
-    return prefix.every(function (segment, index) {
+    return prefix.length <= path.length && prefix.every(function (segment, index) {
       return path[index] === segment;
     });
+  }
+
+  function rebasePathAfterRemoval(path, removedPath) {
+    var rebased = path.slice();
+    var parentPath = removedPath.slice(0, -1);
+    var removedIndex = removedPath[removedPath.length - 1];
+    // Removing a branch also shifts every descendant of its later siblings.
+    if (isPathPrefix(parentPath, path) && path[parentPath.length] > removedIndex) {
+      rebased[parentPath.length] -= 1;
+    }
+    return rebased;
   }
 
   function canDropChoiceOnNode(choicePath, targetNodePath) {
@@ -1059,16 +1074,17 @@
 
     var sourceInfo = getChoiceParentInfo(choicePath);
     var targetNode = getNodeAtPath(targetNodePath);
+    var rebasedTargetPath = rebasePathAfterRemoval(targetNodePath, choicePath);
     var movedChoice = sourceInfo.parentNode.choices.splice(sourceInfo.choiceIndex, 1)[0];
     targetNode.choices.push(movedChoice);
 
-    var insertedPath = targetNodePath.concat(targetNode.choices.length - 1);
+    var insertedPath = rebasedTargetPath.concat(targetNode.choices.length - 1);
     if (movedChoice.next) {
       selectNode(insertedPath);
     } else {
       selectResult(insertedPath);
     }
-    setStatus("Moved the branch under step " + pathText(targetNodePath) + ".", "success");
+    setStatus("Moved the branch under step " + pathText(rebasedTargetPath) + ".", "success");
   }
 
   function setupTreeDragAndDrop() {
@@ -1490,6 +1506,7 @@
   }
 
   function renderAll() {
+    state.selected = normalizeSelectedState(state.selected);
     renderTree();
     renderEditor();
     updateOutputs();

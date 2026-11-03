@@ -36,8 +36,8 @@ export default defineConfig({
     ['meta', { property: 'twitter:image', content: 'https://wiki.sm0ke.org/assets/logo.png' }],
     ['script', { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=G-NDRRR0YEW9' }],
     ['script', {}, `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-NDRRR0YEW9');`],
-    // Redirect old Docsify hash routes (/#/quest → /quest, etc.)
-    ['script', {}, `(function(){var h=location.hash;if(h&&h.startsWith('#/')){location.replace(h.slice(1).split('?')[0]||'/');}})()`],
+    // Preserve the destination section in old Docsify bookmarks.
+    ['script', { src: '/assets/legacy-redirect.js' }],
   ],
 
   transformPageData(pageData) {
@@ -93,7 +93,7 @@ export default defineConfig({
         link: '/pc',
         items: [
           { text: 'BSManager', link: '/pc#bsmanager' },
-          { text: 'Custom Songs', link: '/pc#install-custom-songs' },
+          { text: 'Custom Songs', link: '/pc#_4-install-custom-songs' },
           { text: 'Troubleshooting', link: '/pc#troubleshooting' },
           { text: 'Recommended Mods', link: '/modsPC' },
         ],
