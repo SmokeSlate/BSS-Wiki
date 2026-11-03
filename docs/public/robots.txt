@@ -1,0 +1,2 @@
+# Advertise the guide sitemap without changing Cloudflare-managed crawler rules.
+Sitemap: https://wiki.sm0ke.org/sitemap.xml

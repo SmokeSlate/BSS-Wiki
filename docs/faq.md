@@ -16,6 +16,8 @@ A: There is little to no support with multiple accounts. There has been success 
 
 ## Swap Versions
 
+Open the [standalone version-swapping guide](/vchange).
+
 Need to swap versions to get custom sabers or play certain mods? Follow this!
 
 **Instructions:**
@@ -30,6 +32,8 @@ Need to swap versions to get custom sabers or play certain mods? Follow this!
 9. Continue like normal.
 
 ## Uninstall Mods Instructions
+
+Open the [standalone guide to uninstalling mods](/uninstall).
 
 1. Open MBF Launcher.
 2. Click on the ⚙️ icon. (between the `Your Mods` and `Add Mods`)

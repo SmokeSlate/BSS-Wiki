@@ -1,5 +1,7 @@
 import { defineConfig } from 'vitepress'
 
+const siteUrl = 'https://wiki.sm0ke.org'
+
 export default defineConfig({
   title: 'Beat Saber Modding Wiki',
   description: 'Step-by-step guides for modding Beat Saber on Meta Quest and PC — MBF Launcher, BSManager, custom songs, custom sabers, recommended mods, and troubleshooting.',
@@ -29,7 +31,6 @@ export default defineConfig({
     ['meta', { name: 'robots', content: 'index, follow' }],
     ['meta', { name: 'author', content: 'Sm0ke' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:url', content: 'https://wiki.sm0ke.org/' }],
     ['meta', { property: 'og:image', content: 'https://wiki.sm0ke.org/assets/logo.png' }],
     ['meta', { property: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { property: 'twitter:image', content: 'https://wiki.sm0ke.org/assets/logo.png' }],
@@ -38,6 +39,23 @@ export default defineConfig({
     // Redirect old Docsify hash routes (/#/quest → /quest, etc.)
     ['script', {}, `(function(){var h=location.hash;if(h&&h.startsWith('#/')){location.replace(h.slice(1).split('?')[0]||'/');}})()`],
   ],
+
+  transformPageData(pageData) {
+    if (pageData.relativePath === '404.md') return
+
+    // Match the .html URLs already used by the sitemap and internal links.
+    // GitHub Pages also serves extensionless URLs, so declare one preferred URL.
+    const path = pageData.relativePath
+      .replace(/(^|\/)index\.md$/, '$1')
+      .replace(/\.md$/, '.html')
+    const canonicalUrl = new URL(path, `${siteUrl}/`).href
+
+    pageData.frontmatter.head ??= []
+    pageData.frontmatter.head.push(
+      ['link', { rel: 'canonical', href: canonicalUrl }],
+      ['meta', { property: 'og:url', content: canonicalUrl }],
+    )
+  },
 
   themeConfig: {
     logo: '/assets/logo.png',
@@ -110,6 +128,9 @@ export default defineConfig({
   },
 
   sitemap: {
-    hostname: 'https://wiki.sm0ke.org',
+    hostname: siteUrl,
+    // Files in public/ are copied as-is, so VitePress does not discover them.
+    // Include the public troubleshooter, not support chat or internal tools.
+    transformItems: (items) => [...items, { url: 'fix/' }],
   },
 })
