@@ -18,7 +18,7 @@
   </script>
   <!-- HTTPS redirect -->
   <script>
-    if (location.protocol === "http:" && location.hostname.endsWith("sm0ke.org")) {
+    if (location.protocol === "http:" && (location.hostname === "sm0ke.org" || location.hostname.endsWith(".sm0ke.org"))) {
       location.replace("https://" + location.host + location.pathname + location.search + location.hash);
     }
   </script>

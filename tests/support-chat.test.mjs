@@ -510,3 +510,54 @@ test('legacy support URL is a noindex redirect preserving query/hash, with no re
   current.window.close();
   dom.window.close();
 });
+
+const redirectOrigins = [
+  ['http://sm0ke.org', true],
+  ['http://wiki.sm0ke.org', true],
+  ['http://preview.wiki.sm0ke.org:8080', true],
+  ['http://WIKI.SM0KE.ORG', true],
+  ['http://evilsm0ke.org', false],
+  ['http://not-sm0ke.org', false],
+  ['http://sm0ke.org.evil.example', false],
+  ['http://wiki.sm0ke.org.evil.example', false],
+  ['http://example.org', false],
+  ['http://localhost:8080', false],
+  ['http://127.0.0.1:8080', false],
+  ['https://sm0ke.org', false],
+  ['https://wiki.sm0ke.org', false],
+];
+
+test('support HTTPS upgrade matches only the apex domain or a dot-delimited subdomain', () => {
+  const dom = new JSDOM(html);
+  const script = [...dom.window.document.scripts].find(script => script.textContent.includes('location.replace('));
+  assert.ok(script, 'The HTTPS redirect script exists');
+  for (const [origin, upgrade] of redirectOrigins) {
+    const url = new URL(`${origin}/support/?topic=quest&return=https%3A%2F%2Fexample.org#reply`);
+    const replacements = [];
+    const location = {
+      protocol: url.protocol, hostname: url.hostname, host: url.host,
+      pathname: url.pathname, search: url.search, hash: url.hash,
+      replace: destination => replacements.push(destination),
+    };
+    vm.runInNewContext(script.textContent, { location });
+    if (upgrade) url.protocol = 'https:';
+    assert.deepEqual(replacements, upgrade ? [url.href] : [], origin);
+  }
+  dom.window.close();
+});
+
+test('legacy support redirects remain on the same host and upgrade only the intended domain', () => {
+  for (const [origin, upgrade] of redirectOrigins) {
+    const dom = new JSDOM(legacyHtml);
+    const { document } = dom.window;
+    const url = new URL(`${origin}/support/old_index.html?topic=quest&return=https%3A%2F%2Fexample.org#reply`);
+    const replacements = [];
+    const location = { href: url.href, search: url.search, hash: url.hash, replace: destination => replacements.push(destination) };
+    vm.runInNewContext(document.scripts[0].textContent, { document, location, URL });
+    url.pathname = '/support/';
+    if (upgrade) url.protocol = 'https:';
+    assert.deepEqual(replacements, [url.href], origin);
+    assert.equal(document.getElementById('support-link').href, url.href, origin);
+    dom.window.close();
+  }
+});

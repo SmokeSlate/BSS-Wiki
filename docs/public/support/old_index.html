@@ -14,7 +14,7 @@
     const destination = new URL("/support/", location.href);
     destination.search = location.search;
     destination.hash = location.hash;
-    if (destination.protocol === "http:" && destination.hostname.endsWith("sm0ke.org")) {
+    if (destination.protocol === "http:" && (destination.hostname === "sm0ke.org" || destination.hostname.endsWith(".sm0ke.org"))) {
       destination.protocol = "https:";
     }
     document.getElementById("support-link").href = destination.href;
