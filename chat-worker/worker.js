@@ -1,4 +1,5 @@
 const MAX_MESSAGES = 200;
+const MAX_MUTATION_RETRIES = 32;
 const MAX_MESSAGE_LENGTH = 8000;
 const MAX_BOT_INBOX_LIMIT = 100;
 const MAX_REQUEST_ID_LENGTH = 128;
@@ -230,7 +231,7 @@ async function handleGetMessages(request, env) {
   const isAdmin = isAdminRequest(request, env);
   const conversation = await readConversation(env, conversationId);
   if (!conversation) {
-    return jsonResponse({ messages: [] }, 200, request, env);
+    return jsonResponse({ messages: [], cursor: 0, hasMore: false }, 200, request, env);
   }
   if (!isAdmin) {
     const token =
@@ -242,34 +243,13 @@ async function handleGetMessages(request, env) {
     }
   }
 
-  const afterParam = url.searchParams.get("after");
-  let after = afterParam ? Number(afterParam) : 0;
-  if (Number.isNaN(after) || after < 0) {
-    after = 0;
-  }
-
-  const limitParam = url.searchParams.get("limit");
-  let limit = limitParam ? Number(limitParam) : MAX_MESSAGES;
-  if (Number.isNaN(limit) || limit <= 0) {
-    limit = MAX_MESSAGES;
-  }
-  limit = Math.min(limit, MAX_MESSAGES);
-
-  const messages = readMessagesFromJson(conversation.messagesJson, {
-    after,
-    limit,
-    includeDeleted: isAdmin,
+  const page = readMessagePage(conversation.messagesJson, {
+    cursor: readCursor(url.searchParams.get("cursor")),
+    after: Number(url.searchParams.get("after")) || 0,
+    limit: Math.min(parsePositiveInteger(url.searchParams.get("limit"), MAX_MESSAGES), MAX_MESSAGES),
+    isAdmin,
   });
-  let filtered = messages;
-  if (!isAdmin) {
-    filtered = filtered
-      .map((msg) => {
-        const { originalText, deletedAt, deletedBy, ...rest } = msg;
-        return rest;
-      });
-  }
-
-  return jsonResponse({ messages: filtered }, 200, request, env);
+  return jsonResponse(page, 200, request, env);
 }
 
 async function handleStream(request, env) {
@@ -292,11 +272,11 @@ async function handleStream(request, env) {
     }
   }
 
-  const afterParam = url.searchParams.get("after");
-  let lastMessageAt = afterParam ? Number(afterParam) : 0;
-  if (Number.isNaN(lastMessageAt) || lastMessageAt < 0) {
-    lastMessageAt = 0;
-  }
+  // EventSource resends the last event ID on automatic reconnect. It must take
+  // precedence over the original URL cursor, which is otherwise permanently stale.
+  let cursor = readCursor(request.headers.get("Last-Event-ID")) ??
+    readCursor(url.searchParams.get("cursor"));
+  const after = Number(url.searchParams.get("after")) || 0;
 
   const encoder = new TextEncoder();
   let closed = false;
@@ -310,6 +290,7 @@ async function handleStream(request, env) {
   };
 
   const sendEvent = (controller, event, data) => {
+    if (event === "messages") write(controller, `id: ${data.cursor}\n`);
     write(controller, `event: ${event}\n`);
     write(controller, `data: ${JSON.stringify(data)}\n\n`);
   };
@@ -319,6 +300,7 @@ async function handleStream(request, env) {
   };
 
   const schedulePoll = (controller) => {
+    if (closed) return;
     const delay = idlePolls > 2 ? 15000 : 5000;
     pollTimer = setTimeout(async () => {
       if (closed) {
@@ -333,25 +315,21 @@ async function handleStream(request, env) {
         const conversation = await readConversation(env, conversationId);
         if (!conversation) {
           idlePolls = Math.min(idlePolls + 1, 5);
-          schedulePoll(controller);
           return;
         }
-        const messages = readMessagesFromJson(conversation.messagesJson, {
-          after: lastMessageAt,
-          limit: MAX_MESSAGES,
-          includeDeleted: isAdmin,
+        const page = readMessagePage(conversation.messagesJson, {
+          cursor, after, limit: MAX_MESSAGES, isAdmin,
         });
-        if (messages.length) {
-          lastMessageAt = Math.max(
-            lastMessageAt,
-            ...messages.map((msg) => msg.createdAt || 0)
-          );
-          sendEvent(controller, "messages", { messages });
+        if (closed) return;
+        if (page.messages.length || cursor === null || page.cursor !== cursor) {
+          cursor = page.cursor;
+          sendEvent(controller, "messages", page);
           idlePolls = 0;
         } else {
           idlePolls = Math.min(idlePolls + 1, 5);
         }
       } catch (error) {
+        if (closed) return;
         sendEvent(controller, "error", {
           error: error && error.message ? error.message : "Stream error",
         });
@@ -528,6 +506,9 @@ async function handlePostMessage(request, env, ctx) {
     throw new HttpError(400, `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer`);
   }
 
+  if (!["user", "support"].includes(role)) {
+    throw new HttpError(400, "Invalid role");
+  }
   if (role === "support") {
     requireAdmin(request, env);
   }
@@ -565,7 +546,7 @@ async function handlePostMessage(request, env, ctx) {
   relayMessageToDiscord(result.message, env, ctx);
 
   return jsonResponse(
-    { ok: true, message: result.message, clientToken: result.clientToken },
+    { ok: true, message: projectMessage(result.message, isAdminRequest(request, env)), clientToken: result.clientToken },
     200,
     request,
     env
@@ -614,79 +595,45 @@ async function handleDiscordReply(request, env) {
 }
 
 async function appendConversationMessage(env, input) {
-  const conversation = input.conversation || await readConversation(env, input.conversationId);
-  const messages = parseMessagesJson(conversation?.messagesJson);
-
-  if (input.requestId) {
-    const existing = messages.find((message) => message.requestId === input.requestId);
-    if (existing) {
-      return {
-        message: existing,
-        clientToken: conversation?.token || "",
-        duplicate: true,
-      };
+  const now = Date.now();
+  const proposedToken = input.conversation?.token || input.clientToken || generateToken();
+  // Creation is atomic too: a concurrent first sender cannot overwrite a token
+  // or attach their message to a conversation they failed to create.
+  const created = await env.DB.prepare(
+    `INSERT INTO conversations (id, name, created_at, last_message_at, token, messages_json)
+     VALUES (?, ?, ?, 0, ?, '[]') ON CONFLICT(id) DO NOTHING RETURNING id`
+  ).bind(input.conversationId, input.senderName || `Guest ${input.conversationId}`, now, proposedToken).first();
+  const providedToken = created ? proposedToken : input.clientToken;
+  const id = crypto.randomUUID();
+  return mutateConversation(env, input.conversationId, (messages, conversation, changeSeq) => {
+    if (input.role !== "support" && (!providedToken || providedToken !== conversation.token)) {
+      throw new HttpError(403, "Unauthorized");
     }
-  }
-
-  if (input.replyToMessageId) {
-    const target = messages.find(
-      (message) => message.id === input.replyToMessageId && !message.deletedAt
-    );
-    if (!target) {
+    if (input.requestId) {
+      const existing = messages.find((message) => message.requestId === input.requestId);
+      if (existing) {
+        return { unchanged: true, result: { message: existing, clientToken: conversation.token, duplicate: true } };
+      }
+    }
+    if (input.replyToMessageId && !messages.some((message) => message.id === input.replyToMessageId && !message.deletedAt)) {
       throw new HttpError(400, "replyToMessageId does not match a visible message");
     }
-  }
-
-  const now = Date.now();
-  const clientToken = conversation?.token || input.clientToken || generateToken();
-  const message = {
-    id: crypto.randomUUID(),
-    conversationId: input.conversationId,
-    senderId: input.senderId,
-    senderName: input.senderName,
-    text: input.text,
-    role: input.role,
-    createdAt: now,
-    ...(input.replyToMessageId ? { replyToMessageId: input.replyToMessageId } : {}),
-    ...(input.requestId ? { requestId: input.requestId } : {}),
-  };
-
-  messages.push(message);
-  const trimmed = messages.length > MAX_MESSAGES ? messages.slice(-MAX_MESSAGES) : messages;
-  const conversationName = conversation?.name || input.senderName || `Guest ${input.conversationId}`;
-  await env.DB.prepare(
-    `INSERT INTO conversations (
+    const message = normalizeMessage({
       id,
-      name,
-      created_at,
-      last_message_at,
-      last_message_preview,
-      last_message_role,
-      last_message_sender_name,
-      token,
-      messages_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      name = COALESCE(NULLIF(conversations.name, ''), excluded.name),
-      last_message_at = excluded.last_message_at,
-      last_message_preview = excluded.last_message_preview,
-      last_message_role = excluded.last_message_role,
-      last_message_sender_name = excluded.last_message_sender_name,
-      token = COALESCE(conversations.token, excluded.token),
-      messages_json = excluded.messages_json`
-  ).bind(
-    input.conversationId,
-    conversationName,
-    now,
-    now,
-    previewText(input.text),
-    input.role,
-    input.senderName,
-    clientToken,
-    JSON.stringify(trimmed)
-  ).run();
-
-  return { message, clientToken, duplicate: false };
+      conversationId: input.conversationId,
+      senderId: input.senderId,
+      senderName: input.senderName,
+      text: input.text,
+      role: input.role,
+      createdAt: now,
+      createdSeq: changeSeq,
+      changeSeq,
+      replyToMessageId: input.replyToMessageId,
+      requestId: input.requestId,
+    });
+    messages.push(message);
+    return { result: { message, clientToken: conversation.token, duplicate: false } };
+  });
 }
 
 async function handlePatchMessage(request, env) {
@@ -712,48 +659,19 @@ async function handlePatchMessage(request, env) {
     new URL(request.url).searchParams.get("token") ||
     "";
 
-  const conversation = await readConversation(env, conversationId);
-  if (!conversation) {
-    throw new HttpError(404, "Conversation not found");
+  if (text.length > MAX_MESSAGE_LENGTH) {
+    throw new HttpError(400, `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer`);
   }
-
-  if (!isAdmin) {
-    if (!token || token !== conversation.token) {
-      throw new HttpError(403, "Unauthorized");
-    }
-  }
-
-  const messages = parseMessagesJson(conversation.messagesJson);
-  const index = messages.findIndex((item) => item.id === messageId);
-  if (index === -1) {
-    throw new HttpError(404, "Message not found");
-  }
-  const message = messages[index];
-  if (!isAdmin) {
-    if (!senderId || senderId !== message.senderId || message.role === "support") {
-      throw new HttpError(403, "Unauthorized");
-    }
-    if (message.deletedAt) {
-      throw new HttpError(409, "Message deleted");
-    }
-  }
-
-  const now = Date.now();
-  const editedBy = isAdmin ? "admin" : senderId;
-  const updated = {
-    ...message,
-    text,
-    editedAt: now,
-    editedBy,
-  };
-  if (!message.originalText && message.text !== text) {
-    updated.originalText = message.text;
-  }
-  messages[index] = updated;
-  const lastVisible = getLastVisibleMessage(messages);
-  await updateConversationRecord(env, conversationId, messages, lastVisible);
-
-  return jsonResponse({ ok: true, message: updated }, 200, request, env);
+  const updated = await mutateConversation(env, conversationId, (messages, conversation, changeSeq) => {
+    authorizeConversationMutation(conversation, messages, messageId, { isAdmin, token, senderId });
+    const message = messages.find((item) => item.id === messageId);
+    if (message.deletedAt) throw new HttpError(409, "Message deleted");
+    if (message.text === text) return { unchanged: true, result: message };
+    message.originalText ||= message.text;
+    Object.assign(message, { text, editedAt: Date.now(), editedBy: isAdmin ? "admin" : senderId, changeSeq });
+    return { result: message };
+  });
+  return jsonResponse({ ok: true, message: projectMessage(updated, isAdmin) }, 200, request, env);
 }
 
 async function handleDeleteMessage(request, env) {
@@ -775,51 +693,15 @@ async function handleDeleteMessage(request, env) {
     new URL(request.url).searchParams.get("token") ||
     "";
 
-  const conversation = await readConversation(env, conversationId);
-  if (!conversation) {
-    throw new HttpError(404, "Conversation not found");
-  }
-
-  if (!isAdmin) {
-    if (!token || token !== conversation.token) {
-      throw new HttpError(403, "Unauthorized");
-    }
-  }
-
-  const messages = parseMessagesJson(conversation.messagesJson);
-  const index = messages.findIndex((item) => item.id === messageId);
-  const target = index === -1 ? null : messages[index];
-  if (!target) {
-    throw new HttpError(404, "Message not found");
-  }
-
-  if (target.deletedAt) {
-    const responseBody = isAdmin ? { ok: true, message: target } : { ok: true };
-    return jsonResponse(responseBody, 200, request, env);
-  }
-
-  if (!isAdmin) {
-    if (!senderId || senderId !== target.senderId || target.role === "support") {
-      throw new HttpError(403, "Unauthorized");
-    }
-  }
-
-  const now = Date.now();
-  const deletedBy = isAdmin ? "admin" : senderId;
-  const updated = {
-    ...target,
-    deletedAt: now,
-    deletedBy,
-  };
-  if (!updated.originalText) {
-    updated.originalText = target.originalText || target.text;
-  }
-  messages[index] = updated;
-  const lastVisible = getLastVisibleMessage(messages);
-  await updateConversationRecord(env, conversationId, messages, lastVisible);
-
-  const responseBody = isAdmin ? { ok: true, message: updated } : { ok: true };
-  return jsonResponse(responseBody, 200, request, env);
+  const updated = await mutateConversation(env, conversationId, (messages, conversation, changeSeq) => {
+    authorizeConversationMutation(conversation, messages, messageId, { isAdmin, token, senderId });
+    const message = messages.find((item) => item.id === messageId);
+    if (message.deletedAt) return { unchanged: true, result: message };
+    message.originalText ||= message.text;
+    Object.assign(message, { deletedAt: Date.now(), deletedBy: isAdmin ? "admin" : senderId, changeSeq });
+    return { result: message };
+  });
+  return jsonResponse({ ok: true, message: projectMessage(updated, isAdmin) }, 200, request, env);
 }
 
 async function readJson(request) {
@@ -923,23 +805,27 @@ async function readConversationByDiscordThread(env, threadId) {
 }
 
 function parseMessagesJson(raw) {
-  if (!raw) {
-    return [];
+  let data;
+  try { data = JSON.parse(raw || "[]"); } catch { /* fail closed below */ }
+  if (!Array.isArray(data) || data.some((message) => !message || typeof message !== "object" || !message.id)) {
+    throw new HttpError(500, "Conversation history unavailable");
   }
-  try {
-    const data = JSON.parse(raw);
-    return Array.isArray(data)
-      ? data.map((msg) => normalizeMessage(msg)).filter(Boolean)
-      : [];
-  } catch (error) {
-    return [];
-  }
+  const messages = data.map(normalizeMessage);
+  // Backward-compatible reads during deployment; migration 0004 assigns the
+  // same stable revisions before new writers start.
+  const maxSeq = Math.max(0, ...messages.map((message) => message.changeSeq));
+  messages.forEach((message, index) => {
+    if (!message.changeSeq) message.changeSeq = maxSeq + index + 1;
+    if (!message.createdSeq) message.createdSeq = index + 1;
+  });
+  return messages.sort(compareMessageCreation);
+}
+
+function compareMessageCreation(a, b) {
+  return a.createdAt - b.createdAt || a.createdSeq - b.createdSeq || a.id.localeCompare(b.id);
 }
 
 function normalizeMessage(message) {
-  if (!message || typeof message !== "object") {
-    return null;
-  }
   return {
     id: message.id || "",
     conversationId: message.conversationId || "",
@@ -948,6 +834,7 @@ function normalizeMessage(message) {
     text: message.text || "",
     role: message.role || "user",
     createdAt: message.createdAt || 0,
+    createdSeq: Number.isSafeInteger(message.createdSeq) && message.createdSeq > 0 ? message.createdSeq : 0,
     editedAt: message.editedAt || null,
     editedBy: message.editedBy || "",
     deletedAt: message.deletedAt || null,
@@ -955,54 +842,88 @@ function normalizeMessage(message) {
     originalText: message.originalText || "",
     replyToMessageId: message.replyToMessageId || "",
     requestId: message.requestId || "",
+    changeSeq: Number.isSafeInteger(message.changeSeq) && message.changeSeq > 0 ? message.changeSeq : 0,
   };
 }
 
-function readMessagesFromJson(messagesJson, { after = 0, limit = MAX_MESSAGES, includeDeleted }) {
-  const raw = parseMessagesJson(messagesJson).filter((item) => item && item.id);
-  let messages = raw;
-  if (!includeDeleted) {
-    messages = messages.filter((msg) => !msg.deletedAt);
+// All visitor transports, including mutation responses and deletion deltas,
+// share this allowlist. Historical text and moderation identity stay private.
+function projectMessage(message, isAdmin) {
+  if (isAdmin) return message;
+  if (message.deletedAt) {
+    return { id: message.id, conversationId: message.conversationId, deleted: true, changeSeq: message.changeSeq };
   }
-  if (after) {
-    messages = messages.filter((msg) => (msg.createdAt || 0) > after);
-  }
-  if (messages.length > limit) {
-    messages = after ? messages.slice(0, limit) : messages.slice(-limit);
-  }
-  return messages;
+  const { id, conversationId, senderId, senderName, text, role, createdAt, createdSeq, editedAt, replyToMessageId, changeSeq } = message;
+  return { id, conversationId, senderId, senderName, text, role, createdAt, createdSeq, editedAt, replyToMessageId, changeSeq };
 }
 
-function getLastVisibleMessage(messages) {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    if (!messages[i].deletedAt) {
-      return messages[i];
-    }
-  }
-  return null;
+function readCursor(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const cursor = Number(value);
+  if (!Number.isSafeInteger(cursor) || cursor < 0) throw new HttpError(400, "Invalid cursor");
+  return cursor;
 }
 
-async function updateConversationRecord(env, conversationId, messages, lastVisible) {
-  const lastMessageAt = lastVisible ? lastVisible.createdAt || 0 : 0;
-  const lastMessagePreview = lastVisible ? previewText(lastVisible.text || "") : "";
-  const lastMessageRole = lastVisible ? lastVisible.role || "user" : "";
-  const lastMessageSenderName = lastVisible ? lastVisible.senderName || "" : "";
-  await env.DB.prepare(
-    `UPDATE conversations
-      SET last_message_at = ?,
-          last_message_preview = ?,
-          last_message_role = ?,
-          last_message_sender_name = ?,
-          messages_json = ?
-      WHERE id = ?`
-  ).bind(
-    lastMessageAt,
-    lastMessagePreview,
-    lastMessageRole,
-    lastMessageSenderName,
-    JSON.stringify(messages),
-    conversationId
-  ).run();
+function readMessagePage(messagesJson, { cursor = null, after = 0, limit = MAX_MESSAGES, isAdmin }) {
+  const messages = parseMessagesJson(messagesJson);
+  const latest = Math.max(0, ...messages.map((message) => message.changeSeq));
+  if (cursor !== null) {
+    const changed = messages.filter((message) => message.changeSeq > cursor)
+      .sort((a, b) => a.changeSeq - b.changeSeq);
+    const page = changed.slice(0, limit);
+    return {
+      messages: page.map((message) => projectMessage(message, isAdmin)),
+      cursor: page.length ? page[page.length - 1].changeSeq : Math.max(cursor, latest),
+      hasMore: changed.length > limit,
+    };
+  }
+  // `after` is retained for older consumers. New clients must use `cursor` to
+  // avoid timestamp ties and to receive privacy-safe deletion tombstones.
+  const visible = after
+    ? messages.filter((message) => message.createdAt > after && (isAdmin || !message.deletedAt))
+    : messages.filter((message) => isAdmin || !message.deletedAt);
+  const page = after ? visible.slice(0, limit) : visible.slice(-limit);
+  const remaining = after ? visible.slice(limit) : [];
+  // A legacy timestamp page must not advance a new cursor beyond an omitted
+  // change. Replaying a newer selected message is safe; skipping a change is not.
+  const nextCursor = remaining.length ? Math.min(...remaining.map((message) => message.changeSeq)) - 1 : latest;
+  return { messages: page.map((message) => projectMessage(message, isAdmin)), cursor: nextCursor, hasMore: remaining.length > 0 };
+}
+
+function authorizeConversationMutation(conversation, messages, messageId, { isAdmin, token, senderId }) {
+  if (!isAdmin && (!token || token !== conversation.token)) throw new HttpError(403, "Unauthorized");
+  const message = messages.find((item) => item.id === messageId);
+  if (!message) throw new HttpError(404, "Message not found");
+  if (!isAdmin && (!senderId || senderId !== message.senderId || message.role === "support")) {
+    throw new HttpError(403, "Unauthorized");
+  }
+}
+
+async function mutateConversation(env, conversationId, mutate) {
+  for (let attempt = 0; attempt < MAX_MUTATION_RETRIES; attempt += 1) {
+    const conversation = await readConversation(env, conversationId);
+    if (!conversation) throw new HttpError(404, "Conversation not found");
+    const messages = parseMessagesJson(conversation.messagesJson);
+    const nextSeq = Math.max(0, ...messages.map((message) => message.changeSeq)) + 1;
+    const mutation = mutate(messages, conversation, nextSeq);
+    if (mutation.unchanged) return mutation.result;
+    messages.sort(compareMessageCreation);
+    const lastVisible = messages.filter((message) => !message.deletedAt).at(-1);
+    // Compare-and-swap is a single atomic SQLite statement, not an in-process
+    // lock. Conflicting appends, edits and deletes all retry from fresh state.
+    const saved = await env.DB.prepare(
+      `UPDATE conversations
+       SET messages_json = ?, last_message_at = ?, last_message_preview = ?,
+           last_message_role = ?, last_message_sender_name = ?
+       WHERE id = ? AND messages_json = ? RETURNING id`
+    ).bind(
+      JSON.stringify(messages), lastVisible?.createdAt || 0,
+      lastVisible ? previewText(lastVisible.text) : "", lastVisible?.role || "",
+      lastVisible?.senderName || "", conversationId, conversation.messagesJson
+    ).first();
+    if (saved) return mutation.result;
+  }
+  throw new HttpError(503, "Conversation busy; retry the request");
 }
 
 function previewText(text) {
@@ -1069,19 +990,19 @@ async function requireDiscordBridge(request, env) {
 
 
 function isAdminRequest(request, env) {
-  if (!env.ADMIN_KEY) {
-    return true;
+  if (!stringField(env.ADMIN_KEY)) {
+    return false;
   }
   const headerKey = request.headers.get("X-Admin-Key") || "";
   const url = new URL(request.url);
   const queryKey = url.searchParams.get("adminKey") || "";
   const provided = headerKey || queryKey;
-  return provided && provided === env.ADMIN_KEY;
+  return Boolean(provided && provided === env.ADMIN_KEY);
 }
 
 function requireAdmin(request, env) {
-  if (!env.ADMIN_KEY) {
-    return;
+  if (!stringField(env.ADMIN_KEY)) {
+    throw new HttpError(503, "Admin API not configured");
   }
   if (!isAdminRequest(request, env)) {
     throw new HttpError(403, "Unauthorized");

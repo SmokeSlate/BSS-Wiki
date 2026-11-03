@@ -26,6 +26,6 @@ If you haven't done this already, follow the steps below:
 
 <small>From [BSMG Wiki](https://bsmg.wiki/quest-modding.html#preparations)</small>
 
-Continue at [the quest docs](/quest#mbf-browser).
+Continue at [the quest docs](/quest#mods-before-friday).
 
 ---

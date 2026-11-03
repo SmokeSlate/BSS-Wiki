@@ -48,6 +48,29 @@
     };
   }
 
+  function safeLinkHref(value) {
+    var href = asText(value).trim();
+    if (!href) {
+      return "";
+    }
+    try {
+      // Resolve relative wiki links without allowing executable URL schemes.
+      var parsed = new URL(href, "https://wiki.invalid/");
+      return /^(https?:|mailto:)$/.test(parsed.protocol) ? href : "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function renderResourceLinks(links) {
+    return links.map(function (link) {
+      var href = safeLinkHref(link.href);
+      return "<li>" + (href
+        ? '<a class="underline decoration-indigo-400/50 underline-offset-4 hover:text-indigo-200" href="' + escapeHtml(href) + '">' + escapeHtml(link.label) + "</a>"
+        : '<span class="text-gray-300">' + escapeHtml(link.label) + "</span>") + "</li>";
+    }).join("");
+  }
+
   function normalizeResult(result) {
     return {
       title: asText(result && result.title),
@@ -236,6 +259,19 @@
     var flow = normalizeData(data);
     var lines = [];
 
+    function markdownLink(link) {
+      var label = escapeHtml(link.label).replace(/([\\\[\]])/g, "\\$1");
+      var href = safeLinkHref(link.href);
+      if (!href) {
+        return label;
+      }
+      // Protect the Markdown destination from parentheses, whitespace and HTML.
+      href = href.replace(/[\\()<>\s]/g, function (character) {
+        return character === "(" ? "%28" : character === ")" ? "%29" : encodeURIComponent(character);
+      });
+      return "[" + label + "](" + href + ")";
+    }
+
     function buttonClass() {
       return "inline-flex text-white bg-indigo-500 border-0 py-1 px-4 focus:outline-none hover:bg-indigo-400 text-lg rounded-full mr-2 mb-2";
     }
@@ -264,6 +300,10 @@
         lines.push("");
         lines.push(node.question);
       }
+      if (node.details) {
+        lines.push("");
+        lines.push(node.details);
+      }
 
       if (node.choices.length) {
         lines.push("");
@@ -271,7 +311,12 @@
         node.choices.forEach(function (choice, index) {
           var pathForChoice = path.concat(index);
           var target = choice.next ? nodeAnchor(pathForChoice) : resultAnchor(pathForChoice);
-          lines.push('  <a href="#' + target + '"><button class="' + buttonClass() + '">' + escapeHtml(choice.label || ("Choice " + (index + 1))) + "</button></a>");
+          lines.push("  <div>");
+          lines.push('    <a href="#' + target + '"><button class="' + buttonClass() + '">' + escapeHtml(choice.label || ("Choice " + (index + 1))) + "</button></a>");
+          if (choice.description) {
+            lines.push('    <p class="text-sm">' + escapeHtml(choice.description) + "</p>");
+          }
+          lines.push("  </div>");
         });
         lines.push("</div>");
       }
@@ -288,7 +333,7 @@
 
         lines.push("");
         lines.push('<a id="' + resultAnchor(pathForChoice) + '"></a>');
-        lines.push(new Array(Math.min(depth + 1, 6) + 1).join("#") + " " + (choice.label || choice.result.title || "Result"));
+        lines.push(new Array(Math.min(depth + 1, 6) + 1).join("#") + " " + (choice.result.title || choice.label || "Result"));
         if (choice.result.image) {
           lines.push("");
           lines.push("![" + escapeHtml(choice.result.title || choice.label || "Result") + "](" + choice.result.image + ")");
@@ -306,13 +351,32 @@
         if (choice.result.links.length) {
           lines.push("");
           choice.result.links.forEach(function (link) {
-            lines.push("- [" + escapeHtml(link.label) + "](" + link.href + ")");
+            lines.push("- " + markdownLink(link));
           });
         }
       });
     }
 
-    renderNode(flow.root, [], 1);
+    lines.push("# " + flow.title);
+    if (flow.description) {
+      lines.push("", flow.description);
+    }
+    if (flow.intro) {
+      lines.push("", flow.intro);
+    }
+    if (flow.supportChecklist.length) {
+      lines.push("", "## Support checklist", "");
+      flow.supportChecklist.forEach(function (item) {
+        lines.push("- " + item);
+      });
+    }
+    if (flow.quickLinks.length) {
+      lines.push("", "## Quick links", "");
+      flow.quickLinks.forEach(function (link) {
+        lines.push("- " + markdownLink(link));
+      });
+    }
+    renderNode(flow.root, [], 2);
     return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
   }
 
@@ -348,8 +412,9 @@
 
       var choicesHtml = node.choices.map(function (choice, index) {
         return (
-          '<button type="button" data-choice-index="' + index + '" class="inline-flex text-white bg-indigo-500 border-0 py-2 px-5 focus:outline-none hover:bg-indigo-400 text-base rounded-full mr-2 mb-2">' +
-          escapeHtml(choice.label || ("Choice " + (index + 1))) +
+          '<button type="button" data-choice-index="' + index + '" class="inline-flex flex-col items-center text-white bg-indigo-500 border-0 py-2 px-5 focus:outline-none hover:bg-indigo-400 text-base rounded-full mr-2 mb-2">' +
+          '<span>' + escapeHtml(choice.label || ("Choice " + (index + 1))) + "</span>" +
+          (choice.description ? '<span class="block text-sm mt-1">' + escapeHtml(choice.description) + "</span>" : "") +
           "</button>"
         );
       }).join("");
@@ -362,6 +427,9 @@
         ? result.summary
         : (node.question || flow.intro);
       var activeIntroHtml = renderMarkdownHtml(activeIntro);
+      var flowIntroHtml = !isResultView && !state.trail.length && flow.intro !== activeIntro
+        ? renderMarkdownHtml(flow.intro)
+        : "";
       var detailHtml = renderMarkdownHtml(node.details);
       var activeImageHtml = isResultView
         ? (result.image
@@ -380,12 +448,24 @@
             (result.links.length
               ? '<div class="mt-6 max-w-2xl mx-auto text-left">' +
                   '<p class="text-xs uppercase tracking-[0.2em] text-gray-500 mb-3">Resources</p>' +
-                  '<ul class="space-y-2 text-sm text-indigo-300">' + result.links.map(function (link) {
-                    return '<li><a class="underline decoration-indigo-400/50 underline-offset-4 hover:text-indigo-200" href="' + escapeHtml(link.href) + '">' + escapeHtml(link.label) + "</a></li>";
-                  }).join("") + "</ul>" +
+                  '<ul class="space-y-2 text-sm text-indigo-300">' + renderResourceLinks(result.links) + "</ul>" +
                 "</div>"
               : "")
           )
+        : "";
+      var supportHtml = flow.supportChecklist.length || flow.quickLinks.length
+        ? '<aside aria-label="Support resources" class="mt-8 pt-6 border-t border-gray-700 max-w-2xl mx-auto text-left">' +
+            (flow.supportChecklist.length
+              ? '<h3 class="text-lg font-semibold text-white">Before contacting support</h3>' +
+                '<ul class="mt-3 space-y-2 text-sm text-gray-300 list-disc list-inside">' + flow.supportChecklist.map(function (item) {
+                  return "<li>" + escapeHtml(item) + "</li>";
+                }).join("") + "</ul>"
+              : "") +
+            (flow.quickLinks.length
+              ? '<h3 class="mt-4 mb-3 text-lg font-semibold text-white">Quick links</h3>' +
+                '<ul class="space-y-2 text-sm text-indigo-300">' + renderResourceLinks(flow.quickLinks) + "</ul>"
+              : "") +
+          "</aside>"
         : "";
 
       if (isResultView) {
@@ -419,10 +499,12 @@
           '<div class="flex flex-wrap justify-center gap-2 mb-6">' + trailHtml + "</div>" +
           activeImageHtml +
           '<h2 class="text-3xl font-bold text-white">' + escapeHtml(activeTitle) + "</h2>" +
+          (flowIntroHtml ? '<div class="md-copy text-gray-300 mt-4 max-w-2xl mx-auto">' + flowIntroHtml + "</div>" : "") +
           (activeIntroHtml ? '<div class="md-copy text-gray-300 mt-4 text-lg ' + (isResultView ? "max-w-2xl" : "max-w-2xl mx-auto") + '">' + activeIntroHtml + "</div>" : "") +
           (!isResultView && detailHtml ? '<div class="md-copy text-sm text-gray-400 mt-3 max-w-2xl mx-auto">' + detailHtml + "</div>" : "") +
           (!isResultView && choicesHtml ? '<div class="flex flex-wrap justify-center mt-8">' + choicesHtml + "</div>" : "") +
           resultBodyHtml +
+          supportHtml +
           '<div class="flex flex-wrap justify-center gap-2 mt-8">' +
             '<button type="button" id="runtime-back" class="inline-flex text-white bg-gray-900 border border-gray-700 py-2 px-4 hover:border-gray-500 text-sm rounded-full"' + (state.trail.length ? "" : " disabled") + '>Back</button>' +
             '<button type="button" id="runtime-reset" class="inline-flex text-white bg-indigo-500 border-0 py-2 px-4 hover:bg-indigo-400 text-sm rounded-full">Restart</button>' +

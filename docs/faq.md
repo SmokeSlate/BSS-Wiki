@@ -7,7 +7,7 @@ A: **Use the normal files app** or try uninstalling and reinstalling it.
 A: No, you keep all purchased items when modding, but you can't play songs introduced in the version after the one you downgrade to.
 
 **Q: Go to settings isn't working.**
-A: Use [Quest Settings Opener](https://github.com/SmokeSlate/QuestDevSettings/releases/download/2.0/OpenSettings.apk). [Steps on how here.](/quest#using-dev-tools-opener-to-enable-developer-mode)
+A: Use [Quest Settings Opener](https://github.com/SmokeSlate/QuestDevSettings/releases/download/2.0/OpenSettings.apk). [Steps on how here.](/quest#_4-using-dev-tools-opener-to-enable-developer-mode)
 
 **Q: Does it work with multiple accounts?**
 A: There is little to no support with multiple accounts. There has been success on headset admin accounts so try that.
